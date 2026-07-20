@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ColAsi",
-    "slug": "ColAsi",
+    "slug": "void",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,10 +15,26 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.voidistakensteam.colasi"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fa1c3ca1-92f0-43dd-8484-5da4b5247292"
+      }
+    },
+    "owner": "voidistakens-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fa1c3ca1-92f0-43dd-8484-5da4b5247292"
     }
   }
 }
