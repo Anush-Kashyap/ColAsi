@@ -336,15 +336,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     <Text style={styles.title}>Calendar & Schedule</Text>
                     <Text style={styles.subtext}>Daily timetable & task reminders</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {selectedDate !== todayStr && (
-                        <TouchableOpacity 
-                            style={[styles.addButton, { backgroundColor: colors.bgTertiary }]}
-                            onPress={() => setSelectedDate(todayStr)}
-                        >
-                            <Text style={[styles.addButtonText, { color: colors.gold }]}>Today</Text>
-                        </TouchableOpacity>
-                    )}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity 
                         style={[styles.addButton, { backgroundColor: colors.bgTertiary, borderBottomColor: colors.gold }]}
                         onPress={() => importAcademicCalendar(false)}
