@@ -542,35 +542,6 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         );
                     })
                 )}
-
-                                    {ev.description ? (
-                                        <Text 
-                                            style={[
-                                                styles.eventDesc,
-                                                ev.completed && styles.strikethroughText
-                                            ]}
-                                        >
-                                            {ev.description}
-                                        </Text>
-                                    ) : null}
-
-                                    <View style={styles.eventFooter}>
-                                        <Text style={styles.reminderNotice}>
-                                            🔔 3-day prior reminder active
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                <TouchableOpacity 
-                                    onPress={() => handleDeleteEvent(ev.id, ev.title)}
-                                    style={styles.deleteBtn}
-                                >
-                                    <Text style={styles.deleteText}>×</Text>
-                                </TouchableOpacity>
-                            </View>
-                        );
-                    })
-                )}
             </ScrollView>
 
             {/* Bottom Sheet Form for Adding Event */}
