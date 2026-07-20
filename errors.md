@@ -81,4 +81,11 @@ This file documents critical development errors made during the mobile applicati
 - **Error:** `Namespace 'com.voidistakensteam.void' is not a valid Java package name as 'void' is a Java keyword.`
 - **Cause:** EAS Build reads tracked files from git. Since local changes to `app.json` specifying `"package": "com.voidistakensteam.colasi"` had not been committed to git yet, EAS Build auto-generated the package name from `com.owner.slug` (`com.voidistakensteam.void`), which failed Gradle compilation because `void` is a reserved Java keyword.
 - **Fix:** Staged and committed all pending workspace changes and `app.json` updates to git (`git add . && git commit`).
-- **Rule for future work:** Always commit `app.json` and project files to git before running `eas build` so EAS receives the explicit package configuration instead of fallback defaults.
+---
+
+## 11. Expo Notifications Invalid Trigger Input Object
+- **Error:** `TypeError: The trigger object you provided is invalid. It needs to contain a type or channelId entry.`
+- **Cause:** `Notifications.scheduleNotificationAsync` in SDK 52+ expects an object with an explicit `type` field (e.g. `{ type: Notifications.SchedulableTriggerInputTypes.DATE, date: notifDate }`), rather than passing a raw `Date` instance directly to `trigger`.
+- **Fix:** Formatted the `trigger` parameter to `{ type: Notifications.SchedulableTriggerInputTypes?.DATE || 'date', date: notifDate }` in `CalendarScreen.js`.
+- **Rule for future work:** Always format `Notifications.scheduleNotificationAsync` trigger inputs as `{ type: 'date', date: targetDate }` when scheduling date-based local notifications.
+

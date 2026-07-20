@@ -181,7 +181,10 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                             body: `${subjectName || 'Schedule'} is due in ${daysBefore} day${daysBefore > 1 ? 's' : ''}! (${dateStr})`,
                             sound: true,
                         },
-                        trigger: notifDate,
+                        trigger: {
+                            type: Notifications.SchedulableTriggerInputTypes?.DATE || 'date',
+                            date: notifDate,
+                        },
                     });
                     notifIds.push(id);
                 }
@@ -302,6 +305,9 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
 
     // Filter events for selected date
     const selectedDayEvents = events.filter(ev => ev.date === selectedDate);
+    const academicEvents = selectedDayEvents.filter(ev => ev.type === 'holiday' || ev.type === 'exam' || ev.type === 'academic');
+    const personalTasks = selectedDayEvents.filter(ev => ev.type !== 'holiday' && ev.type !== 'exam' && ev.type !== 'academic');
+    const isHoliday = academicEvents.some(ev => ev.type === 'holiday');
 
     // Filter timetable classes for selected date's day of week
     const selectedDayName = getDayName(selectedDate);
@@ -368,15 +374,60 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     />
                 </View>
 
-                {/* Day Timetable Section */}
+                {/* 1. Academic Events & Holidays Section (Above Timetable) */}
+                {academicEvents.length > 0 && (
+                    <View style={{ marginBottom: 20 }}>
+                        <View style={styles.daySectionHeader}>
+                            <Text style={styles.daySectionTitle}>
+                                🏛️ Academic Events & Holidays
+                            </Text>
+                            <Text style={styles.daySectionCount}>{academicEvents.length} items</Text>
+                        </View>
+
+                        {academicEvents.map(ev => {
+                            let badgeColor = colors.gold;
+                            if (ev.type === 'holiday') badgeColor = '#EF4444';
+                            if (ev.type === 'exam') badgeColor = '#8B5CF6';
+                            if (ev.type === 'academic') badgeColor = '#3B82F6';
+
+                            return (
+                                <View 
+                                    key={ev.id} 
+                                    style={[styles.eventCard, { borderLeftColor: badgeColor, backgroundColor: colors.bgSecondary }]}
+                                >
+                                    <View style={styles.eventInfo}>
+                                        <View style={styles.eventTitleRow}>
+                                            <Text style={styles.eventTitle}>{ev.title}</Text>
+                                            <View style={[styles.subjectBadge, { backgroundColor: `${badgeColor}25` }]}>
+                                                <Text style={[styles.subjectBadgeText, { color: badgeColor, textTransform: 'capitalize' }]}>
+                                                    {ev.type}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        {ev.description ? (
+                                            <Text style={styles.eventSubtext}>{ev.description}</Text>
+                                        ) : null}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* 2. Day Timetable Section (Hidden if isHoliday) */}
                 <View style={styles.daySectionHeader}>
                     <Text style={styles.daySectionTitle}>
                         📖 Classes for {selectedDayName || 'Selected Day'}
                     </Text>
-                    <Text style={styles.daySectionCount}>{dayClasses.length} sessions</Text>
+                    <Text style={styles.daySectionCount}>{isHoliday ? 'Holiday' : `${dayClasses.length} sessions`}</Text>
                 </View>
 
-                {dayClasses.length === 0 ? (
+                {isHoliday ? (
+                    <View style={[styles.emptyContainer, { borderColor: '#EF444440', backgroundColor: '#EF444410' }]}>
+                        <Text style={[styles.emptyTitle, { color: '#EF4444' }]}>🌴 Holiday - No Classes Scheduled</Text>
+                        <Text style={styles.emptyDesc}>Regular timetable classes are suspended for this holiday.</Text>
+                    </View>
+                ) : dayClasses.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyTitle}>No classes on {selectedDayName || 'this day'}</Text>
                         <Text style={styles.emptyDesc}>Use the Schedule tab to add recurring timetable slots for {selectedDayName || 'this day'}.</Text>
@@ -412,27 +463,24 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     })
                 )}
 
-                {/* Tasks & Deadlines Header */}
+                {/* 3. Personal Tasks & Deadlines Header */}
                 <View style={[styles.daySectionHeader, { marginTop: 24 }]}>
                     <Text style={styles.daySectionTitle}>
-                        ⏰ Tasks & Reminders ({selectedDate === todayStr ? 'Today' : selectedDate})
+                        ⏰ Personal Tasks & Reminders ({selectedDate === todayStr ? 'Today' : selectedDate})
                     </Text>
-                    <Text style={styles.daySectionCount}>{selectedDayEvents.length} items</Text>
+                    <Text style={styles.daySectionCount}>{personalTasks.length} items</Text>
                 </View>
 
-                {/* Day Events List */}
-                {selectedDayEvents.length === 0 ? (
+                {/* Personal Tasks List */}
+                {personalTasks.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>No schedules for this date</Text>
-                        <Text style={styles.emptyDesc}>Tap "+ Add Task" to schedule an exam, assignment, or deadline.</Text>
+                        <Text style={styles.emptyTitle}>No personal tasks for this date</Text>
+                        <Text style={styles.emptyDesc}>Tap "+ Add Task" to schedule a personal study goal or task.</Text>
                     </View>
                 ) : (
-                    selectedDayEvents.map(ev => {
+                    personalTasks.map(ev => {
                         const subject = subjects.find(s => s.id === ev.subjectId);
-                        let subColor = subject ? subject.color : colors.gold;
-                        if (ev.type === 'holiday') subColor = '#EF4444';
-                        if (ev.type === 'exam') subColor = '#8B5CF6';
-                        if (ev.type === 'academic') subColor = '#3B82F6';
+                        const subColor = subject ? subject.color : colors.gold;
 
                         return (
                             <View 
@@ -463,20 +511,37 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                         >
                                             {ev.title}
                                         </Text>
-                                        {subject ? (
+                                        {subject && (
                                             <View style={[styles.subjectBadge, { backgroundColor: `${subColor}20` }]}>
                                                 <Text style={[styles.subjectBadgeText, { color: subColor }]}>
                                                     {subject.shortName}
                                                 </Text>
                                             </View>
-                                        ) : ev.type ? (
-                                            <View style={[styles.subjectBadge, { backgroundColor: `${subColor}25` }]}>
-                                                <Text style={[styles.subjectBadgeText, { color: subColor, textTransform: 'capitalize' }]}>
-                                                    {ev.type}
-                                                </Text>
-                                            </View>
-                                        ) : null}
+                                        )}
                                     </View>
+
+                                    {ev.description ? (
+                                        <Text 
+                                            style={[
+                                                styles.eventSubtext,
+                                                ev.completed && styles.strikethroughText
+                                            ]}
+                                        >
+                                            {ev.description}
+                                        </Text>
+                                    ) : null}
+                                </View>
+
+                                <TouchableOpacity 
+                                    style={styles.deleteButton}
+                                    onPress={() => handleDeleteEvent(ev.id, ev.title)}
+                                >
+                                    <Text style={styles.deleteButtonText}>✕</Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })
+                )}
 
                                     {ev.description ? (
                                         <Text 
