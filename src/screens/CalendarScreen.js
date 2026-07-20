@@ -398,14 +398,14 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                     <View style={styles.eventInfo}>
                                         <View style={styles.eventTitleRow}>
                                             <Text style={styles.eventTitle}>{ev.title}</Text>
-                                            <View style={[styles.subjectBadge, { backgroundColor: `${badgeColor}25` }]}>
-                                                <Text style={[styles.subjectBadgeText, { color: badgeColor, textTransform: 'capitalize' }]}>
+                                            <View style={[styles.subjectBadge, { backgroundColor: `${badgeColor}30` }]}>
+                                                <Text style={[styles.subjectBadgeText, { color: colors.gold, textTransform: 'capitalize' }]}>
                                                     {ev.type}
                                                 </Text>
                                             </View>
                                         </View>
                                         {ev.description ? (
-                                            <Text style={styles.eventSubtext}>{ev.description}</Text>
+                                            <Text style={[styles.eventDesc, { color: colors.gold, marginTop: 4 }]}>{ev.description}</Text>
                                         ) : null}
                                     </View>
                                 </View>

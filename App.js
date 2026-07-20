@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, StatusBar, Platform, Modal } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Outfit_500Medium, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import { Quicksand_500Medium, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
@@ -21,6 +21,7 @@ Notifications.setNotificationHandler({
 export default function App() {
     const [currentTab, setCurrentTab] = useState('calendar');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [infoModalVisible, setInfoModalVisible] = useState(false);
 
     useEffect(() => {
         setupNotifications();
@@ -77,7 +78,16 @@ export default function App() {
             {/* Cozy Header bar */}
             <View style={styles.appHeader}>
                 <View>
-                    <Text style={styles.logoText}>ColAsi</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.logoText}>ColAsi</Text>
+                        <TouchableOpacity 
+                            onPress={() => setInfoModalVisible(true)} 
+                            style={styles.infoBadge}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Text style={styles.infoBadgeText}>i</Text>
+                        </TouchableOpacity>
+                    </View>
                     <Text style={styles.logoSubtitle}>your cozy space</Text>
                 </View>
                 <View style={styles.statusIndicator}>
@@ -135,6 +145,37 @@ export default function App() {
                     <Text style={[styles.navText, currentTab === 'subjects' && styles.navTextActive]}>Subjects</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* App Info Modal */}
+            <Modal visible={infoModalVisible} transparent animationType="fade">
+                <TouchableOpacity 
+                    style={styles.modalBackdrop} 
+                    activeOpacity={1} 
+                    onPress={() => setInfoModalVisible(false)}
+                >
+                    <TouchableOpacity activeOpacity={1} style={styles.infoModalCard}>
+                        <Text style={styles.infoModalTitle}>ColAsi</Text>
+                        <Text style={styles.infoModalSubtitle}>your cozy college companion</Text>
+                        
+                        <View style={styles.infoDivider} />
+
+                        <Text style={styles.infoModalDesc}>
+                            Manage your class schedules, track attendance, organize subject syllabus catalogs, and stay ahead of academic holidays and exam dates.
+                        </Text>
+
+                        <View style={styles.authorBadge}>
+                            <Text style={styles.authorBadgeText}>Made by Anush 🫪</Text>
+                        </View>
+
+                        <TouchableOpacity 
+                            style={styles.infoCloseBtn}
+                            onPress={() => setInfoModalVisible(false)}
+                        >
+                            <Text style={styles.infoCloseBtnText}>Close</Text>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView>
       </SafeAreaProvider>
     );
@@ -176,6 +217,22 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: colors.textSecondary,
         marginTop: 1,
+    },
+    infoBadge: {
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: colors.bgTertiary,
+        borderWidth: 1,
+        borderColor: colors.gold,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    infoBadgeText: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 11,
+        color: colors.gold,
+        marginTop: -1,
     },
     statusIndicator: {
         flexDirection: 'row',
@@ -242,5 +299,72 @@ const styles = StyleSheet.create({
     navTextActive: {
         color: colors.gold,
         fontFamily: 'Outfit-Bold',
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    infoModalCard: {
+        backgroundColor: colors.bgSecondary,
+        width: '100%',
+        maxWidth: 340,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        padding: 24,
+        alignItems: 'center',
+    },
+    infoModalTitle: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 26,
+        color: colors.cream,
+    },
+    infoModalSubtitle: {
+        fontFamily: 'Quicksand-Medium',
+        fontSize: 12,
+        color: colors.gold,
+        marginTop: 2,
+    },
+    infoDivider: {
+        width: '60%',
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        marginVertical: 16,
+    },
+    infoModalDesc: {
+        fontFamily: 'Quicksand-Medium',
+        fontSize: 13,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 16,
+    },
+    authorBadge: {
+        backgroundColor: colors.bgTertiary,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.gold,
+        marginBottom: 20,
+    },
+    authorBadgeText: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 13,
+        color: colors.gold,
+    },
+    infoCloseBtn: {
+        backgroundColor: colors.gold,
+        paddingHorizontal: 28,
+        paddingVertical: 10,
+        borderRadius: 16,
+    },
+    infoCloseBtnText: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 13,
+        color: colors.cream,
     }
 });

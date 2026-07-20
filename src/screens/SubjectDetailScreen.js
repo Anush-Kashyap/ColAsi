@@ -428,14 +428,24 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
                                     </View>
                                 </TouchableOpacity>
 
-                                {/* Module Progress Bar */}
+                                {/* Module Progress Bar & Open/Close Toggle */}
                                 <View style={styles.moduleProgressRow}>
-                                    <View style={styles.modulePill}>
-                                        <Text style={styles.modulePillText}>Class: {modClassDone}/{modTopics.length}</Text>
+                                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                                        <View style={styles.modulePill}>
+                                            <Text style={styles.modulePillText}>Class: {modClassDone}/{modTopics.length}</Text>
+                                        </View>
+                                        <View style={[styles.modulePill, { backgroundColor: `${colors.optimal}20` }]}>
+                                            <Text style={[styles.modulePillText, { color: colors.optimal }]}>Self: {modSelfDone}/{modTopics.length}</Text>
+                                        </View>
                                     </View>
-                                    <View style={[styles.modulePill, { backgroundColor: `${colors.optimal}20` }]}>
-                                        <Text style={[styles.modulePillText, { color: colors.optimal }]}>Self: {modSelfDone}/{modTopics.length}</Text>
-                                    </View>
+
+                                    <TouchableOpacity 
+                                        style={styles.openCloseBtn}
+                                        onPress={() => setExpandedModuleId(isExpanded ? null : mod.id)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.openCloseBtnText}>{isExpanded ? 'Close ▲' : 'Open ▼'}</Text>
+                                    </TouchableOpacity>
                                 </View>
 
                                 {/* Expanded Topics View */}
@@ -844,9 +854,23 @@ const styles = StyleSheet.create({
     },
     moduleProgressRow: {
         flexDirection: 'row',
-        gap: 8,
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingBottom: 12,
+    },
+    openCloseBtn: {
+        backgroundColor: colors.bgTertiary,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    openCloseBtnText: {
+        fontFamily: fonts.headingBold,
+        fontSize: 11,
+        color: colors.gold,
     },
     modulePill: {
         backgroundColor: `${colors.gold}15`,
