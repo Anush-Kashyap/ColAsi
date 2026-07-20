@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     addBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     },
     daySelectorBar: {
         paddingHorizontal: 20,
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     },
     dayCapsuleTextActive: {
         fontFamily: fonts.headingBold,
-        color: '#3C240A',
+        color: colors.cream,
     },
     timelineScroll: {
         paddingHorizontal: 20,
@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     saveBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 14,
-        color: '#3C240A',
+        color: colors.cream,
     },
     pickerBackdrop: {
         flex: 1,

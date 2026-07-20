@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     addModHeaderBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     },
     scrollContent: {
         paddingHorizontal: 20,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     emptyAddBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     },
     moduleCard: {
         backgroundColor: colors.bgSecondary,
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
         borderColor: colors.optimal,
     },
     checkboxIcon: {
-        color: '#161412',
+        color: colors.cream,
         fontSize: 14,
         fontWeight: 'bold',
     },
@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
     inlineAddBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 12,
-        color: '#3C240A',
+        color: colors.cream,
     },
     inlineCancelBtn: {
         paddingHorizontal: 8,
@@ -1053,6 +1053,6 @@ const styles = StyleSheet.create({
     sheetSaveBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     }
 });

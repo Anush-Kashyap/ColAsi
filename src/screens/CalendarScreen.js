@@ -300,7 +300,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         ...(markedDates[selectedDate] || {}),
         selected: true,
         selectedColor: colors.gold,
-        selectedTextColor: '#3C240A',
+        selectedTextColor: colors.cream,
     };
 
     // Filter events for selected date
@@ -356,7 +356,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                             calendarBackground: colors.bgSecondary,
                             textSectionTitleColor: colors.textSecondary,
                             selectedDayBackgroundColor: colors.gold,
-                            selectedDayTextColor: '#3C240A',
+                            selectedDayTextColor: colors.cream,
                             todayTextColor: colors.gold,
                             dayTextColor: colors.cream,
                             textDisabledColor: colors.textMuted,
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     addButtonText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     },
     scrollContent: {
         paddingHorizontal: 20,
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.gold,
     },
     checkboxCheck: {
-        color: '#3C240A',
+        color: colors.cream,
         fontFamily: fonts.headingBold,
         fontSize: 14,
     },
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
         color: colors.cream,
     },
     subjectPillTextActive: {
-        color: '#3C240A',
+        color: colors.cream,
         fontFamily: fonts.headingBold,
     },
     input: {
@@ -935,6 +935,6 @@ const styles = StyleSheet.create({
     saveBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     }
 });

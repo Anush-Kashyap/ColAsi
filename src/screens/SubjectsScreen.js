@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     addButtonText: {
         fontFamily: fonts.headingBold,
         fontSize: 13,
-        color: '#3C240A',
+        color: colors.cream,
     },
     listContent: {
         paddingHorizontal: 20,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     saveBtnText: {
         fontFamily: fonts.headingBold,
         fontSize: 14,
-        color: '#3C240A',
+        color: colors.cream,
     },
     backupPanel: {
         marginTop: 32,
