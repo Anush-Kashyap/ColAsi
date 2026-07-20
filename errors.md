@@ -75,8 +75,10 @@ This file documents critical development errors made during the mobile applicati
 - **Fix:** Wrapped the main `ScrollView` in `SubjectDetailScreen.js` inside a `<KeyboardAvoidingView>` component configured to offset layout heights correctly on keyboard changes.
 - **Rule for future work:** Always wrap scrolling lists containing text input fields in a `KeyboardAvoidingView` to ensure input visibility.
 
+---
 
-
-
-
-
+## 10. Java Keyword Package Name in EAS Build
+- **Error:** `Namespace 'com.voidistakensteam.void' is not a valid Java package name as 'void' is a Java keyword.`
+- **Cause:** EAS Build reads tracked files from git. Since local changes to `app.json` specifying `"package": "com.voidistakensteam.colasi"` had not been committed to git yet, EAS Build auto-generated the package name from `com.owner.slug` (`com.voidistakensteam.void`), which failed Gradle compilation because `void` is a reserved Java keyword.
+- **Fix:** Staged and committed all pending workspace changes and `app.json` updates to git (`git add . && git commit`).
+- **Rule for future work:** Always commit `app.json` and project files to git before running `eas build` so EAS receives the explicit package configuration instead of fallback defaults.
