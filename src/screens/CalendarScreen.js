@@ -20,6 +20,54 @@ import { colors, fonts } from '../styles/theme';
 import * as DB from '../database/storage';
 import BottomSheet from '../components/BottomSheet';
 
+const NITC_ACADEMIC_CALENDAR_2026 = [
+    // --- Official Holidays ---
+    { date: '2026-08-15', title: '🇮🇳 Independence Day', description: 'National Holiday', type: 'holiday' },
+    { date: '2026-08-25', title: '🌙 Id-E-Milad*', description: 'Holiday (*Depends on moon sighting)', type: 'holiday' },
+    { date: '2026-08-26', title: '🌸 Onam', description: 'Holiday', type: 'holiday' },
+    { date: '2026-09-01', title: '🏛️ Institute Foundation Day', description: 'Institute Event', type: 'holiday' },
+    { date: '2026-10-02', title: '🕊️ Mahatma Gandhi Jayanti', description: 'National Holiday', type: 'holiday' },
+    { date: '2026-10-09', title: '🎉 Tathva Tech Fest (Day 1)', description: 'Annual Tech Festival', type: 'holiday' },
+    { date: '2026-10-10', title: '🎉 Tathva Tech Fest (Day 2)', description: 'Annual Tech Festival', type: 'holiday' },
+    { date: '2026-10-11', title: '🎉 Tathva Tech Fest (Day 3)', description: 'Annual Tech Festival', type: 'holiday' },
+    { date: '2026-10-19', title: '🪔 Dussehra (Mahashtami)', description: 'Holiday', type: 'holiday' },
+    { date: '2026-10-20', title: '🪔 Dussehra (Vijay Dashmi)', description: 'Holiday', type: 'holiday' },
+    { date: '2026-11-08', title: '🪔 Deepavali', description: 'Holiday', type: 'holiday' },
+    { date: '2026-11-11', title: '⏸️ Buffer Day', description: 'No Instructional Class', type: 'holiday' },
+    { date: '2026-11-24', title: '🪔 Guru Nanak Jayanti', description: 'Holiday', type: 'holiday' },
+    { date: '2026-12-25', title: '🎄 Christmas Day', description: 'Holiday', type: 'holiday' },
+
+    // --- Mid Sem Examinations ---
+    { date: '2026-09-14', title: '📝 Mid Sem Exam - Day 1', description: 'Monsoon Semester Mid-Sem Examination', type: 'exam' },
+    { date: '2026-09-15', title: '📝 Mid Sem Exam - Day 2', description: 'Monsoon Semester Mid-Sem Examination', type: 'exam' },
+    { date: '2026-09-16', title: '📝 Mid Sem Exam - Day 3', description: 'Monsoon Semester Mid-Sem Examination', type: 'exam' },
+    { date: '2026-09-17', title: '📝 Mid Sem Exam - Day 4', description: 'Monsoon Semester Mid-Sem Examination', type: 'exam' },
+    { date: '2026-09-18', title: '📝 Mid Sem Exam - Day 5', description: 'Monsoon Semester Mid-Sem Examination', type: 'exam' },
+    { date: '2026-09-19', title: '📝 Mid Sem Exam (Optional)', description: 'Optional Exam Day', type: 'exam' },
+
+    // --- End Sem Examinations ---
+    { date: '2026-11-12', title: '🎯 End Sem Exam - Day 1', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-13', title: '🎯 End Sem Exam - Day 2', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-14', title: '🎯 End Sem Exam (Optional)', description: 'Optional Exam Day', type: 'exam' },
+    { date: '2026-11-16', title: '🎯 End Sem Exam - Day 3', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-17', title: '🎯 End Sem Exam - Day 4', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-18', title: '🎯 End Sem Exam - Day 5', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-19', title: '🎯 End Sem Exam - Day 6', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-20', title: '🎯 End Sem Exam - Day 7', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-21', title: '🎯 End Sem Exam (Optional)', description: 'Optional Exam Day', type: 'exam' },
+    { date: '2026-11-23', title: '🎯 End Sem Exam - Day 8', description: 'Monsoon Semester Final Examination', type: 'exam' },
+    { date: '2026-11-25', title: '🎯 End Sem Exam - Day 9', description: 'Monsoon Semester Final Examination', type: 'exam' },
+
+    // --- Key Academic Dates ---
+    { date: '2026-07-20', title: '📋 Monsoon 2026 Enrolment Day', description: 'Mandatory Physical Reporting', type: 'academic' },
+    { date: '2026-07-21', title: '🚀 First Instructional Day', description: 'Classes Begin', type: 'academic' },
+    { date: '2026-07-30', title: '⚠️ Last Date for Add/Drop Courses', description: 'Course Registration Deadline', type: 'academic' },
+    { date: '2026-08-22', title: '🎓 22nd Convocation', description: 'Graduation Ceremony', type: 'academic' },
+    { date: '2026-11-05', title: '📅 Friday Time Table Day', description: 'Instructional Day with Friday Schedule', type: 'academic' },
+    { date: '2026-11-10', title: '🏁 Last Instructional Day', description: 'End of Classes', type: 'academic' },
+    { date: '2026-12-10', title: '📊 Result Declaration', description: 'Monsoon Semester Results', type: 'academic' },
+];
+
 export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     const todayStr = new Date().toISOString().split('T')[0];
     const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -37,10 +85,55 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         loadData();
     }, [refreshTrigger]);
 
+    const importAcademicCalendar = async (quiet = false) => {
+        const currentEvents = await DB.getEvents();
+        let addedCount = 0;
+        let updatedEvents = [...currentEvents];
+
+        for (const item of NITC_ACADEMIC_CALENDAR_2026) {
+            const exists = updatedEvents.some(e => e.date === item.date && e.title === item.title);
+            if (!exists) {
+                let notifIds = [];
+                if (item.type === 'exam') {
+                    notifIds = await scheduleEventNotifications(item.title, 'Academic Calendar', item.date);
+                }
+                updatedEvents.push({
+                    id: DB.generateUUID(),
+                    subjectId: null,
+                    date: item.date,
+                    title: item.title,
+                    description: item.description,
+                    type: item.type,
+                    completed: false,
+                    notificationIds: notifIds
+                });
+                addedCount++;
+            }
+        }
+
+        if (addedCount > 0) {
+            await DB.saveEvents(updatedEvents);
+            setEvents(updatedEvents);
+            if (!quiet) {
+                Alert.alert('Academic Calendar Sync', `Imported ${addedCount} holidays, exam dates, and academic milestones!`);
+            }
+        } else if (!quiet) {
+            Alert.alert('Up to Date', 'All NITC holidays and exam dates are already added to your calendar.');
+        }
+    };
+
     const loadData = async () => {
-        const loadedEvents = await DB.getEvents();
+        let loadedEvents = await DB.getEvents();
         const loadedSubjects = await DB.getSubjects();
         const loadedTimetable = await DB.getTimetable();
+
+        // Auto-import academic calendar if not present
+        const hasAcademicEvents = loadedEvents.some(e => e.type === 'holiday' || e.type === 'exam' || e.type === 'academic');
+        if (!hasAcademicEvents) {
+            await importAcademicCalendar(true);
+            loadedEvents = await DB.getEvents();
+        }
+
         setEvents(loadedEvents);
         setSubjects(loadedSubjects);
         setTimetable(loadedTimetable);
@@ -181,7 +274,10 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     const markedDates = {};
     events.forEach(ev => {
         const sub = subjects.find(s => s.id === ev.subjectId);
-        const dotColor = sub ? sub.color : colors.gold;
+        let dotColor = sub ? sub.color : colors.gold;
+        if (ev.type === 'holiday') dotColor = '#EF4444';
+        if (ev.type === 'exam') dotColor = '#8B5CF6';
+        if (ev.type === 'academic') dotColor = '#3B82F6';
 
         if (!markedDates[ev.date]) {
             markedDates[ev.date] = {
@@ -222,16 +318,24 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.title}>Calendar & Schedule</Text>
                     <Text style={styles.subtext}>Daily timetable & task reminders</Text>
                 </View>
-                <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => setSheetVisible(true)}
-                >
-                    <Text style={styles.addButtonText}>+ Add Task</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity 
+                        style={[styles.addButton, { backgroundColor: colors.bgTertiary, borderBottomColor: colors.gold }]}
+                        onPress={() => importAcademicCalendar(false)}
+                    >
+                        <Text style={[styles.addButtonText, { color: colors.cream }]}>🗓️ Sync Cal</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.addButton}
+                        onPress={() => setSheetVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>+ Add Task</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -325,7 +429,10 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                 ) : (
                     selectedDayEvents.map(ev => {
                         const subject = subjects.find(s => s.id === ev.subjectId);
-                        const subColor = subject ? subject.color : colors.gold;
+                        let subColor = subject ? subject.color : colors.gold;
+                        if (ev.type === 'holiday') subColor = '#EF4444';
+                        if (ev.type === 'exam') subColor = '#8B5CF6';
+                        if (ev.type === 'academic') subColor = '#3B82F6';
 
                         return (
                             <View 
@@ -356,13 +463,19 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                         >
                                             {ev.title}
                                         </Text>
-                                        {subject && (
+                                        {subject ? (
                                             <View style={[styles.subjectBadge, { backgroundColor: `${subColor}20` }]}>
                                                 <Text style={[styles.subjectBadgeText, { color: subColor }]}>
                                                     {subject.shortName}
                                                 </Text>
                                             </View>
-                                        )}
+                                        ) : ev.type ? (
+                                            <View style={[styles.subjectBadge, { backgroundColor: `${subColor}25` }]}>
+                                                <Text style={[styles.subjectBadgeText, { color: subColor, textTransform: 'capitalize' }]}>
+                                                    {ev.type}
+                                                </Text>
+                                            </View>
+                                        ) : null}
                                     </View>
 
                                     {ev.description ? (
