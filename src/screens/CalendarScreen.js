@@ -68,8 +68,16 @@ const NITC_ACADEMIC_CALENDAR_2026 = [
     { date: '2026-12-10', title: '📊 Result Declaration', description: 'Monsoon Semester Results', type: 'academic' },
 ];
 
+const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayStr();
     const [selectedDate, setSelectedDate] = useState(todayStr);
     const [events, setEvents] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -328,7 +336,15 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     <Text style={styles.title}>Calendar & Schedule</Text>
                     <Text style={styles.subtext}>Daily timetable & task reminders</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {selectedDate !== todayStr && (
+                        <TouchableOpacity 
+                            style={[styles.addButton, { backgroundColor: colors.bgTertiary }]}
+                            onPress={() => setSelectedDate(todayStr)}
+                        >
+                            <Text style={[styles.addButtonText, { color: colors.gold }]}>Today</Text>
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity 
                         style={[styles.addButton, { backgroundColor: colors.bgTertiary, borderBottomColor: colors.gold }]}
                         onPress={() => importAcademicCalendar(false)}
