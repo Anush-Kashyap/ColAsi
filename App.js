@@ -8,7 +8,8 @@ import { colors } from './src/styles/theme';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
-import { updateTimetableWidget } from './src/widgets/widgetManager';
+import { WidgetPreview } from 'react-native-android-widget';
+import { TimetableWidget } from './src/widgets/TimetableWidget';
 
 // Configure notification foreground behavior
 Notifications.setNotificationHandler({
@@ -23,6 +24,7 @@ export default function App() {
     const [currentTab, setCurrentTab] = useState('calendar');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [infoModalVisible, setInfoModalVisible] = useState(false);
+    const [widgetPreviewVisible, setWidgetPreviewVisible] = useState(false);
 
     useEffect(() => {
         setupNotifications();
@@ -170,8 +172,37 @@ export default function App() {
                         </View>
 
                         <TouchableOpacity 
+                            style={[styles.authorBadge, { backgroundColor: colors.bgTertiary, marginTop: 10, borderWidth: 1, borderColor: colors.gold }]}
+                            onPress={() => setWidgetPreviewVisible(!widgetPreviewVisible)}
+                        >
+                            <Text style={[styles.authorBadgeText, { color: colors.gold }]}>
+                                {widgetPreviewVisible ? '📱 Hide Widget Preview' : '📱 Live Widget Preview'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {widgetPreviewVisible && (
+                            <View style={{ marginTop: 12, alignItems: 'center', backgroundColor: '#161412', padding: 10, borderRadius: 16 }}>
+                                <WidgetPreview
+                                    renderWidget={() => (
+                                        <TimetableWidget
+                                            dayName="Tuesday"
+                                            dateFormatted="21 Jul 2026"
+                                            classes={[
+                                                { startTime: '8:00 AM', endTime: '9:00 AM', subjectName: 'Artificial Intelligence', shortName: 'AI', color: '#ECC875', room: 'NLHC 102' },
+                                                { startTime: '10:00 AM', endTime: '11:00 AM', subjectName: 'Computer Networks', shortName: 'CN', color: '#3B82F6', room: 'ELHC 204' },
+                                                { startTime: '1:00 PM', endTime: '2:00 PM', subjectName: 'Software Engineering', shortName: 'SE', color: '#10B981', room: 'NLHC 105' }
+                                            ]}
+                                        />
+                                    )}
+                                    width={200}
+                                    height={300}
+                                />
+                            </View>
+                        )}
+
+                        <TouchableOpacity 
                             style={styles.infoCloseBtn}
-                            onPress={() => setInfoModalVisible(false)}
+                            onPress={() => { setWidgetPreviewVisible(false); setInfoModalVisible(false); }}
                         >
                             <Text style={styles.infoCloseBtnText}>Close</Text>
                         </TouchableOpacity>
