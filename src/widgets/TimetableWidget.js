@@ -1,5 +1,22 @@
 import React from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { View, Text } from 'react-native';
+
+let FlexWidget = null;
+let TextWidget = null;
+
+try {
+    const widgetModule = require('react-native-android-widget');
+    if (widgetModule) {
+        FlexWidget = widgetModule.FlexWidget;
+        TextWidget = widgetModule.TextWidget;
+    }
+} catch (e) {
+    // Native module not linked in Expo Go
+}
+
+// Fallback components when running in Expo Go
+const FlexComp = FlexWidget || (({ style, children }) => <View style={style}>{children}</View>);
+const TextComp = TextWidget || (({ text, style }) => <Text style={style}>{text}</Text>);
 
 /**
  * Tall Rectangular Home Screen Widget for ColAsi (More Height, Less Width)
@@ -9,7 +26,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
     const displayDay = dayName.toUpperCase();
 
     return (
-        <FlexWidget
+        <FlexComp
             style={{
                 height: 'match_parent',
                 width: 'match_parent',
@@ -21,7 +38,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
             }}
         >
             {/* Header Banner */}
-            <FlexWidget
+            <FlexComp
                 style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
@@ -32,8 +49,8 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     borderBottomColor: '#ECC87540',
                 }}
             >
-                <FlexWidget style={{ flexDirection: 'column' }}>
-                    <TextWidget
+                <FlexComp style={{ flexDirection: 'column' }}>
+                    <TextComp
                         text="📖 TODAY'S CLASSES"
                         style={{
                             color: '#ECC875',
@@ -41,7 +58,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             fontWeight: 'bold',
                         }}
                     />
-                    <TextWidget
+                    <TextComp
                         text={dateFormatted || 'NITC Schedule'}
                         style={{
                             color: '#999086',
@@ -49,9 +66,9 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             marginTop: 1,
                         }}
                     />
-                </FlexWidget>
+                </FlexComp>
 
-                <FlexWidget
+                <FlexComp
                     style={{
                         backgroundColor: '#221F1C',
                         paddingHorizontal: 8,
@@ -61,7 +78,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                         borderColor: '#ECC87540',
                     }}
                 >
-                    <TextWidget
+                    <TextComp
                         text={displayDay || 'TODAY'}
                         style={{
                             color: '#F4EFEA',
@@ -69,12 +86,12 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             fontWeight: 'bold',
                         }}
                     />
-                </FlexWidget>
-            </FlexWidget>
+                </FlexComp>
+            </FlexComp>
 
             {/* Main Timetable Content */}
             {isHoliday ? (
-                <FlexWidget
+                <FlexComp
                     style={{
                         flex: 1,
                         justifyContent: 'center',
@@ -86,7 +103,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                         borderLeftColor: '#EF4444',
                     }}
                 >
-                    <TextWidget
+                    <TextComp
                         text="🌴 HOLIDAY"
                         style={{
                             color: '#EF4444',
@@ -95,7 +112,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             marginBottom: 4,
                         }}
                     />
-                    <TextWidget
+                    <TextComp
                         text={holidayTitle || 'No classes scheduled today'}
                         style={{
                             color: '#F4EFEA',
@@ -103,9 +120,9 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             textAlign: 'center',
                         }}
                     />
-                </FlexWidget>
+                </FlexComp>
             ) : classes.length === 0 ? (
-                <FlexWidget
+                <FlexComp
                     style={{
                         flex: 1,
                         justifyContent: 'center',
@@ -117,7 +134,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                         borderLeftColor: '#ECC875',
                     }}
                 >
-                    <TextWidget
+                    <TextComp
                         text="☕ FREE DAY"
                         style={{
                             color: '#ECC875',
@@ -126,7 +143,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             marginBottom: 4,
                         }}
                     />
-                    <TextWidget
+                    <TextComp
                         text="No classes scheduled for today!"
                         style={{
                             color: '#999086',
@@ -134,11 +151,11 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             textAlign: 'center',
                         }}
                     />
-                </FlexWidget>
+                </FlexComp>
             ) : (
-                <FlexWidget style={{ flexDirection: 'column', gap: 6, flex: 1 }}>
+                <FlexComp style={{ flexDirection: 'column', gap: 6, flex: 1 }}>
                     {classes.slice(0, 6).map((cls, idx) => (
-                        <FlexWidget
+                        <FlexComp
                             key={idx}
                             style={{
                                 flexDirection: 'row',
@@ -151,8 +168,8 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             }}
                         >
                             {/* Class Time Column (Highlighted in Warm Gold) */}
-                            <FlexWidget style={{ flexDirection: 'column', width: 56, marginRight: 6 }}>
-                                <TextWidget
+                            <FlexComp style={{ flexDirection: 'column', width: 56, marginRight: 6 }}>
+                                <TextComp
                                     text={cls.startTime}
                                     style={{
                                         color: '#ECC875',
@@ -160,7 +177,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                         fontWeight: 'bold',
                                     }}
                                 />
-                                <TextWidget
+                                <TextComp
                                     text={cls.endTime}
                                     style={{
                                         color: '#ECC875',
@@ -169,12 +186,12 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                         marginTop: 1,
                                     }}
                                 />
-                            </FlexWidget>
+                            </FlexComp>
 
                             {/* Class Info Column */}
-                            <FlexWidget style={{ flexDirection: 'column', flex: 1 }}>
-                                <FlexWidget style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <TextWidget
+                            <FlexComp style={{ flexDirection: 'column', flex: 1 }}>
+                                <FlexComp style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <TextComp
                                         text={cls.subjectName}
                                         style={{
                                             color: '#F4EFEA',
@@ -184,7 +201,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                         }}
                                     />
                                     {cls.shortName ? (
-                                        <TextWidget
+                                        <TextComp
                                             text={cls.shortName}
                                             style={{
                                                 color: cls.color || '#ECC875',
@@ -197,10 +214,10 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                             }}
                                         />
                                     ) : null}
-                                </FlexWidget>
+                                </FlexComp>
 
                                 {cls.room ? (
-                                    <TextWidget
+                                    <TextComp
                                         text={`📍 ${cls.room}`}
                                         style={{
                                             color: '#999086',
@@ -209,11 +226,11 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                         }}
                                     />
                                 ) : null}
-                            </FlexWidget>
-                        </FlexWidget>
+                            </FlexComp>
+                        </FlexComp>
                     ))}
-                </FlexWidget>
+                </FlexComp>
             )}
-        </FlexWidget>
+        </FlexComp>
     );
 }
