@@ -1,29 +1,26 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-let FlexWidget = null;
-let TextWidget = null;
-
-try {
-    const widgetModule = require('react-native-android-widget');
-    if (widgetModule) {
-        FlexWidget = widgetModule.FlexWidget;
-        TextWidget = widgetModule.TextWidget;
-    }
-} catch (e) {
-    // Native module not linked in Expo Go
-}
-
-// Fallback components when running in Expo Go
-const FlexComp = FlexWidget || (({ style, children }) => <View style={style}>{children}</View>);
-const TextComp = TextWidget || (({ text, style }) => <Text style={style}>{text}</Text>);
-
 /**
  * Tall Rectangular Home Screen Widget for ColAsi (More Height, Less Width)
  * Displays today's schedule, start/end times, room locations, and subject badges.
  */
 export function TimetableWidget({ dayName = '', dateFormatted = '', classes = [], isHoliday = false, holidayTitle = '' }) {
     const displayDay = dayName.toUpperCase();
+
+    // Dynamically resolve widget primitive components at render time
+    let FlexComp = View;
+    let TextComp = ({ text, style }) => <Text style={style}>{text}</Text>;
+
+    try {
+        const widgetModule = require('react-native-android-widget');
+        if (widgetModule && widgetModule.FlexWidget && widgetModule.TextWidget) {
+            FlexComp = widgetModule.FlexWidget;
+            TextComp = widgetModule.TextWidget;
+        }
+    } catch (e) {
+        // Native module not linked in Expo Go
+    }
 
     return (
         <FlexComp
