@@ -35,8 +35,6 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
     const [isUploading, setIsUploading] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const [isDownloading, setIsDownloading] = useState(false);
-
     const handleGenerateCloudCode = async (forceNew = false) => {
         setIsUploading(true);
         const res = await DB.uploadCloudBackup(forceNew);
