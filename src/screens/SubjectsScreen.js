@@ -570,6 +570,8 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                         disabled={isDownloading}
                     >
                         <Text style={styles.saveBtnText}>{isDownloading ? 'Downloading...' : 'Sync & Restore'}</Text>
+                    </TouchableOpacity>
+                </View>
             </BottomSheet>
         </View>
     );
