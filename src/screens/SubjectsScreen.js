@@ -546,15 +546,15 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
             {/* Cloud Sync Code Modal */}
             <BottomSheet visible={cloudSyncModalVisible} onClose={() => setCloudSyncModalVisible(false)}>
                 <Text style={styles.sheetTitle}>🔑 Enter Cloud Sync Code</Text>
-                <Text style={styles.backupInfoText}>Enter the 5-character code generated on your other phone (e.g. K9A68):</Text>
+                <Text style={styles.backupInfoText}>Enter the sync code generated on your other phone (case-sensitive, e.g. KeT45):</Text>
                 <TextInput
                     style={[styles.input, { textAlign: 'center', fontSize: 24, letterSpacing: 4, fontFamily: fonts.headingBold, color: colors.gold, paddingVertical: 14 }]}
-                    placeholder="e.g. K9A68"
+                    placeholder="e.g. KeT45"
                     placeholderTextColor={colors.textMuted}
                     value={cloudCodeInput}
-                    onChangeText={val => setCloudCodeInput(val.toUpperCase())}
-                    maxLength={8}
-                    autoCapitalize="characters"
+                    onChangeText={val => setCloudCodeInput(val.trim())}
+                    maxLength={16}
+                    autoCapitalize="none"
                     autoCorrect={false}
                 />
                 <View style={styles.actions}>

@@ -499,13 +499,13 @@ export async function uploadCloudBackup(forceNew = false) {
             return { success: false, reason: 'Invalid response from cloud server.' };
         }
 
-        const uppercaseCode = code.toUpperCase();
+        const exactCode = code.trim();
         await AsyncStorage.setItem('@colasi_cloud_code', JSON.stringify({
-            code: uppercaseCode,
+            code: exactCode,
             timestamp: Date.now()
         }));
 
-        return { success: true, code: uppercaseCode, isCached: false };
+        return { success: true, code: exactCode, isCached: false };
     } catch (e) {
         console.error('Error uploading cloud backup', e);
         return { success: false, reason: 'Network error. Please check your internet connection.' };
@@ -522,13 +522,24 @@ export async function downloadCloudBackup(shortCode) {
         }
 
         const cleanCode = shortCode.trim();
-        const response = await fetch(`https://paste.rs/${cleanCode}`);
+        let payload = null;
 
-        if (!response.ok) {
+        // Try exact code from paste.rs
+        let response = await fetch(`https://paste.rs/${cleanCode}`);
+        if (response.ok) {
+            payload = await response.text();
+        } else {
+            // Fallback: try pastes.dev
+            response = await fetch(`https://api.pastes.dev/${cleanCode}`);
+            if (response.ok) {
+                payload = await response.text();
+            }
+        }
+
+        if (!payload || !payload.trim()) {
             return { success: false, reason: `Sync code "${cleanCode}" not found or expired.` };
         }
 
-        const payload = await response.text();
         return await importAllData(payload);
     } catch (e) {
         console.error('Error downloading cloud backup', e);
