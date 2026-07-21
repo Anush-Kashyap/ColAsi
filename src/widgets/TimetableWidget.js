@@ -153,7 +153,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     />
                 </FlexComp>
             ) : (
-                <FlexComp style={{ flexDirection: 'column', gap: 6, flex: 1 }}>
+                <FlexComp style={{ flexDirection: 'column', flex: 1 }}>
                     {classes.slice(0, 6).map((cls, idx) => (
                         <FlexComp
                             key={idx}
@@ -162,6 +162,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                 backgroundColor: '#221F1C',
                                 borderRadius: 12,
                                 padding: 8,
+                                marginBottom: 6,
                                 alignItems: 'center',
                                 borderLeftWidth: 3,
                                 borderLeftColor: cls.color || '#ECC875',

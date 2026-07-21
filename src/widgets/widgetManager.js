@@ -22,8 +22,10 @@ const STORAGE_KEYS = {
 };
 
 const formatHour = (h) => {
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const display = h % 12 === 0 ? 12 : h % 12;
+    const num = parseInt(h, 10);
+    if (isNaN(num)) return String(h || '');
+    const ampm = num >= 12 ? 'PM' : 'AM';
+    const display = num % 12 === 0 ? 12 : num % 12;
     return `${display}:00 ${ampm}`;
 };
 
@@ -75,15 +77,15 @@ export async function updateTimetableWidget() {
         // 3. Filter today's timetable sessions
         const dayClasses = timetable
             .filter(slot => slot.day === dayName)
-            .sort((a, b) => a.startHour - b.startHour)
+            .sort((a, b) => parseInt(a.startHour, 10) - parseInt(b.startHour, 10))
             .map(slot => {
                 const sub = subjects.find(s => s.id === slot.subjectId);
                 return {
                     id: slot.id,
                     startTime: formatHour(slot.startHour),
                     endTime: formatHour(slot.endHour),
-                    subjectName: sub ? sub.name : 'Class Session',
-                    shortName: sub ? sub.shortName : 'CLS',
+                    subjectName: sub ? (sub.name || sub.title || 'Class Session') : 'Class Session',
+                    shortName: sub ? (sub.shortName || sub.code || 'CLS') : 'CLS',
                     color: sub ? sub.color : '#ECC875',
                     room: slot.room || '',
                 };
