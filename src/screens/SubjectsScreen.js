@@ -375,12 +375,11 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                 }
                 ListFooterComponent={
                     <View style={styles.backupPanel}>
-                        <Text style={styles.backupPanelTitle}>☁️ Cloud Sync (Free 5-Char Code)</Text>
-                        <Text style={styles.backupPanelDesc}>Sync your subjects, timetable, and syllabus to another phone using a simple 5-character code — 100% free!</Text>
+                        <Text style={styles.backupPanelTitle}>☁️ Cloud Sync</Text>
                         <View style={styles.backupRow}>
                             <TouchableOpacity 
                                 style={[styles.backupBtn, { backgroundColor: colors.gold }]} 
-                                onPress={handleGenerateCloudCode}
+                                onPress={() => handleGenerateCloudCode(false)}
                                 disabled={isUploading}
                             >
                                 <Text style={[styles.backupBtnText, { color: colors.cream }]}>
@@ -396,15 +395,15 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                             </TouchableOpacity>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 14 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14 }}>
                             <TouchableOpacity onPress={handleExportFile}>
                                 <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, textDecorationLine: 'underline' }}>
-                                    📁 Save Backup File
+                                    📁 Save File
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleImportFile}>
                                 <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, textDecorationLine: 'underline' }}>
-                                    📥 Pick Backup File
+                                    📥 Pick File
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleExportData}>
