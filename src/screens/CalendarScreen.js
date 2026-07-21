@@ -475,7 +475,8 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                             <View key={slot.id} style={[styles.classCard, { borderLeftColor: subColor }]}>
                                 <View style={styles.classTimeBox}>
                                     <Text style={styles.classTimeText}>{formatHour(slot.startHour)}</Text>
-                                    <Text style={styles.classTimeSub}>to {formatHour(slot.endHour)}</Text>
+                                    <Text style={styles.classTimeSub}>to</Text>
+                                    <Text style={styles.classTimeText}>{formatHour(slot.endHour)}</Text>
                                 </View>
 
                                 <View style={styles.classInfo}>
@@ -759,7 +760,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         marginRight: 12,
-        minWidth: 76,
+        minWidth: 80,
     },
     classTimeText: {
         fontFamily: fonts.headingBold,
@@ -767,9 +768,10 @@ const styles = StyleSheet.create({
         color: colors.gold,
     },
     classTimeSub: {
-        fontFamily: fonts.body,
+        fontFamily: fonts.heading,
         fontSize: 10,
-        color: colors.textMuted,
+        color: colors.textSecondary,
+        marginVertical: 1,
     },
     classInfo: {
         flex: 1,
