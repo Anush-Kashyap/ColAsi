@@ -8,6 +8,7 @@ import { colors } from './src/styles/theme';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
+import { updateTimetableWidget } from './src/widgets/widgetManager';
 
 // Configure notification foreground behavior
 Notifications.setNotificationHandler({
@@ -25,6 +26,7 @@ export default function App() {
 
     useEffect(() => {
         setupNotifications();
+        updateTimetableWidget();
     }, []);
 
     const setupNotifications = async () => {

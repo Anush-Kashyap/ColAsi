@@ -22,7 +22,24 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "ColAsiTimetable",
+              "label": "ColAsi Today Schedule",
+              "minWidth": "160dp",
+              "minHeight": "280dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 4,
+              "description": "Tall rectangular widget displaying today's class schedule, room numbers, and attendance times.",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
