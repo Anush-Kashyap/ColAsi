@@ -462,5 +462,61 @@ export async function importAllData(backupInput) {
     }
 }
 
+/**
+ * Upload backup to free cloud server and get a 5-character short code
+ */
+export async function uploadCloudBackup() {
+    try {
+        const payload = await exportAllData();
+        if (!payload) return { success: false, reason: 'Failed to generate backup data.' };
+
+        const response = await fetch('https://paste.rs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: payload
+        });
+
+        if (!response.ok) {
+            return { success: false, reason: 'Cloud server rejected the upload.' };
+        }
+
+        const url = (await response.text()).trim();
+        const code = url.split('/').filter(Boolean).pop();
+
+        if (!code || code.length < 2) {
+            return { success: false, reason: 'Invalid response from cloud server.' };
+        }
+
+        return { success: true, code: code.toUpperCase() };
+    } catch (e) {
+        console.error('Error uploading cloud backup', e);
+        return { success: false, reason: 'Network error. Please check your internet connection.' };
+    }
+}
+
+/**
+ * Download backup from free cloud server using a 5-character short code
+ */
+export async function downloadCloudBackup(shortCode) {
+    try {
+        if (!shortCode || !shortCode.trim()) {
+            return { success: false, reason: 'Please enter your sync code.' };
+        }
+
+        const cleanCode = shortCode.trim();
+        const response = await fetch(`https://paste.rs/${cleanCode}`);
+
+        if (!response.ok) {
+            return { success: false, reason: `Sync code "${cleanCode}" not found or expired.` };
+        }
+
+        const payload = await response.text();
+        return await importAllData(payload);
+    } catch (e) {
+        console.error('Error downloading cloud backup', e);
+        return { success: false, reason: 'Network error while fetching cloud backup.' };
+    }
+}
+
 
 

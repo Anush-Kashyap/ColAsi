@@ -28,8 +28,64 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
     // Backup & Sync States
     const [exportSheetVisible, setExportSheetVisible] = useState(false);
     const [importSheetVisible, setImportSheetVisible] = useState(false);
+    const [cloudSyncModalVisible, setCloudSyncModalVisible] = useState(false);
     const [backupString, setBackupString] = useState('');
     const [importString, setImportString] = useState('');
+    const [cloudCodeInput, setCloudCodeInput] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleGenerateCloudCode = async () => {
+        setIsUploading(true);
+        const res = await DB.uploadCloudBackup();
+        setIsUploading(false);
+
+        if (res && res.success) {
+            Alert.alert(
+                '☁️ Cloud Code Generated!',
+                `Your 5-Character Sync Code is:\n\n${res.code}\n\nEnter this code on your other phone to restore your space instantly!`,
+                [
+                    {
+                        text: '📋 Copy Code',
+                        onPress: async () => {
+                            await Clipboard.setStringAsync(res.code);
+                            Alert.alert('Copied!', `Sync Code ${res.code} copied to clipboard.`);
+                        }
+                    },
+                    { text: 'OK' }
+                ]
+            );
+        } else {
+            Alert.alert('Cloud Sync Failed', res?.reason || 'Could not upload to cloud.');
+        }
+    };
+
+    const handleRestoreFromCloudCode = async () => {
+        if (!cloudCodeInput.trim()) {
+            Alert.alert('Code Required', 'Please enter your 5-character sync code.');
+            return;
+        }
+
+        setIsDownloading(true);
+        const res = await DB.downloadCloudBackup(cloudCodeInput.trim());
+        setIsDownloading(false);
+
+        if (res && res.success) {
+            Alert.alert('Cloud Restore Success', 'Your spaces have been successfully loaded from the cloud!', [
+                {
+                    text: 'OK',
+                    onPress: () => {
+                        setCloudCodeInput('');
+                        setCloudSyncModalVisible(false);
+                        loadSubjects();
+                        onRefreshRequest();
+                    }
+                }
+            ]);
+        } else {
+            Alert.alert('Restore Failed', res?.reason || 'Sync code not found or expired.');
+        }
+    };
 
     const handleExportData = async () => {
         const code = await DB.exportAllData();
@@ -313,24 +369,44 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                 }
                 ListFooterComponent={
                     <View style={styles.backupPanel}>
-                        <Text style={styles.backupPanelTitle}>🔄 Cozy Backup & Sync</Text>
-                        <Text style={styles.backupPanelDesc}>Transfer all your data (subjects, timetable, catalog, and tasks) to another phone.</Text>
+                        <Text style={styles.backupPanelTitle}>☁️ Cloud Sync (Free 5-Char Code)</Text>
+                        <Text style={styles.backupPanelDesc}>Sync your subjects, timetable, and syllabus to another phone using a simple 5-character code — 100% free!</Text>
                         <View style={styles.backupRow}>
-                            <TouchableOpacity style={styles.backupBtn} onPress={handleExportFile}>
-                                <Text style={styles.backupBtnText}>📁 Save Backup File</Text>
+                            <TouchableOpacity 
+                                style={[styles.backupBtn, { backgroundColor: colors.gold }]} 
+                                onPress={handleGenerateCloudCode}
+                                disabled={isUploading}
+                            >
+                                <Text style={[styles.backupBtnText, { color: colors.cream }]}>
+                                    {isUploading ? 'Uploading...' : '⚡ Generate Code'}
+                                </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.backupBtn, styles.backupBtnImport]} onPress={handleImportFile}>
-                                <Text style={styles.backupBtnText}>📥 Pick Backup File</Text>
+
+                            <TouchableOpacity 
+                                style={[styles.backupBtn, { borderColor: colors.gold }]} 
+                                onPress={() => { setCloudCodeInput(''); setCloudSyncModalVisible(true); }}
+                            >
+                                <Text style={[styles.backupBtnText, { color: colors.gold }]}>🔑 Enter Code</Text>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity 
-                            style={{ alignSelf: 'center', marginTop: 12 }} 
-                            onPress={handleExportData}
-                        >
-                            <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.gold, textDecorationLine: 'underline' }}>
-                                View / Copy Text Code
-                            </Text>
-                        </TouchableOpacity>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 14 }}>
+                            <TouchableOpacity onPress={handleExportFile}>
+                                <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, textDecorationLine: 'underline' }}>
+                                    📁 Save Backup File
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleImportFile}>
+                                <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.textSecondary, textDecorationLine: 'underline' }}>
+                                    📥 Pick Backup File
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleExportData}>
+                                <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.gold, textDecorationLine: 'underline' }}>
+                                    📋 Copy Text
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 }
             />
@@ -458,6 +534,35 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                         onPress={handleAddSubject}
                     >
                         <Text style={styles.saveBtnText}>Save Subject</Text>
+                    </TouchableOpacity>
+                </View>
+            {/* Cloud Sync Code Modal */}
+            <BottomSheet visible={cloudSyncModalVisible} onClose={() => setCloudSyncModalVisible(false)}>
+                <Text style={styles.sheetTitle}>🔑 Enter Cloud Sync Code</Text>
+                <Text style={styles.backupInfoText}>Enter the 5-character code generated on your other phone (e.g. K9A68):</Text>
+                <TextInput
+                    style={[styles.input, { textAlign: 'center', fontSize: 24, letterSpacing: 4, fontFamily: fonts.headingBold, color: colors.gold, paddingVertical: 14 }]}
+                    placeholder="e.g. K9A68"
+                    placeholderTextColor={colors.textMuted}
+                    value={cloudCodeInput}
+                    onChangeText={val => setCloudCodeInput(val.toUpperCase())}
+                    maxLength={8}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                />
+                <View style={styles.actions}>
+                    <TouchableOpacity 
+                        style={styles.cancelBtn} 
+                        onPress={() => setCloudSyncModalVisible(false)}
+                    >
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.saveBtn} 
+                        onPress={handleRestoreFromCloudCode}
+                        disabled={isDownloading}
+                    >
+                        <Text style={styles.saveBtnText}>{isDownloading ? 'Downloading...' : 'Sync & Restore'}</Text>
                     </TouchableOpacity>
                 </View>
             </BottomSheet>
