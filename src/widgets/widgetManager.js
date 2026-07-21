@@ -73,20 +73,26 @@ export async function updateTimetableWidget() {
                 };
             });
 
-        // 4. Request Widget Refresh
-        await requestWidgetUpdate({
-            widgetName: 'ColAsiTimetable',
-            renderWidget: () => (
-                <TimetableWidget
-                    dayName={dayName}
-                    dateFormatted={dateFormatted}
-                    classes={dayClasses}
-                    isHoliday={isHoliday}
-                    holidayTitle={holidayEvent ? holidayEvent.title : ''}
-                />
-            ),
-        });
+        // 4. Request Widget Refresh safely
+        if (typeof requestWidgetUpdate === 'function') {
+            try {
+                await requestWidgetUpdate({
+                    widgetName: 'ColAsiTimetable',
+                    renderWidget: () => (
+                        <TimetableWidget
+                            dayName={dayName}
+                            dateFormatted={dateFormatted}
+                            classes={dayClasses}
+                            isHoliday={isHoliday}
+                            holidayTitle={holidayEvent ? holidayEvent.title : ''}
+                        />
+                    ),
+                });
+            } catch (widgetErr) {
+                // Ignore native widget error in Expo Go
+            }
+        }
     } catch (e) {
-        console.error('Error updating ColAsi Timetable Widget', e);
+        // Ignore widget manager errors
     }
 }
