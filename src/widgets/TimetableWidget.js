@@ -31,6 +31,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
 
     return (
         <FlexComp
+            clickAction="OPEN_APP"
             style={{
                 height: 'match_parent',
                 width: 'match_parent',
