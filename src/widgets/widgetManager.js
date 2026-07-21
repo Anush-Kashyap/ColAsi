@@ -1,15 +1,18 @@
 import React from 'react';
+import { NativeModules } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TimetableWidget } from './TimetableWidget';
 
 let requestWidgetUpdateFn = null;
-try {
-    const widgetModule = require('react-native-android-widget');
-    if (widgetModule && widgetModule.requestWidgetUpdate) {
-        requestWidgetUpdateFn = widgetModule.requestWidgetUpdate;
+if (NativeModules && NativeModules.RNAndroidWidget) {
+    try {
+        const widgetModule = require('react-native-android-widget');
+        if (widgetModule && widgetModule.requestWidgetUpdate) {
+            requestWidgetUpdateFn = widgetModule.requestWidgetUpdate;
+        }
+    } catch (e) {
+        // Native module not linked in Expo Go
     }
-} catch (e) {
-    // Native module not linked in Expo Go
 }
 
 const STORAGE_KEYS = {
