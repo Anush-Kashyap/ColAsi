@@ -10,6 +10,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import { WidgetPreview } from 'react-native-android-widget';
 import { TimetableWidget } from './src/widgets/TimetableWidget';
+import * as WidgetManager from './src/widgets/widgetManager';
 
 // Configure notification foreground behavior
 Notifications.setNotificationHandler({
@@ -28,7 +29,9 @@ export default function App() {
 
     useEffect(() => {
         setupNotifications();
-        updateTimetableWidget();
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
     }, []);
 
     const setupNotifications = async () => {

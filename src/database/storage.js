@@ -4,7 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { updateTimetableWidget } from '../widgets/widgetManager';
+import * as WidgetManager from '../widgets/widgetManager';
 
 const STORAGE_KEYS = {
     SUBJECTS: 'colasi_subjects_native',
@@ -43,7 +43,9 @@ export async function getSubjects() {
 export async function saveSubjects(subjects) {
     try {
         await AsyncStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
-        updateTimetableWidget();
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
     } catch (e) {
         console.error('Error saving subjects', e);
     }
@@ -68,7 +70,9 @@ export async function getTimetable() {
 export async function saveTimetable(slots) {
     try {
         await AsyncStorage.setItem(STORAGE_KEYS.TIMETABLE, JSON.stringify(slots));
-        updateTimetableWidget();
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
     } catch (e) {
         console.error('Error saving timetable', e);
     }
@@ -149,7 +153,9 @@ export async function getEvents() {
 export async function saveEvents(events) {
     try {
         await AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
-        updateTimetableWidget();
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
     } catch (e) {
         console.error('Error saving calendar events', e);
     }
@@ -458,7 +464,9 @@ export async function importAllData(backupInput) {
         await AsyncStorage.setItem(STORAGE_KEYS.TIMETABLE, JSON.stringify(finalTimetable));
         await AsyncStorage.setItem(STORAGE_KEYS.CATALOGS, JSON.stringify(finalCatalogs));
         await AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(finalEvents));
-        updateTimetableWidget();
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
         
         return { success: true };
     } catch (e) {
