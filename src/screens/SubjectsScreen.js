@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Alert, Share } from 'react-native';
 import { colors, fonts } from '../styles/theme';
 import * as DB from '../database/storage';
 import SubjectCard from '../components/SubjectCard';
@@ -80,6 +80,17 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
             Alert.alert('Copied!', 'Backup code copied to clipboard successfully.');
         } catch (e) {
             Alert.alert('Copy Failed', 'Could not write backup code to clipboard.');
+        }
+    };
+
+    const shareBackupCode = async () => {
+        try {
+            await Share.share({
+                title: 'ColAsi Backup Code',
+                message: backupString,
+            });
+        } catch (e) {
+            Alert.alert('Share Failed', 'Could not open share options.');
         }
     };
 
@@ -258,6 +269,12 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                         onPress={copyToClipboard}
                     >
                         <Text style={styles.cancelBtnText}>📋 Copy Code</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.cancelBtn, { borderColor: colors.gold }]} 
+                        onPress={shareBackupCode}
+                    >
+                        <Text style={[styles.cancelBtnText, { color: colors.gold }]}>📤 Share</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={styles.saveBtn} 

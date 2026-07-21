@@ -167,6 +167,90 @@ export async function cleanupEventsForSubject(subjectId) {
 /**
  * Export all local data to a backup string
  */
+function encodeBase64Utf8(str) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let utf8Bytes = [];
+    for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i);
+        if (code < 0x80) {
+            utf8Bytes.push(code);
+        } else if (code < 0x800) {
+            utf8Bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+        } else if (code < 0xd800 || code >= 0xe000) {
+            utf8Bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        } else {
+            i++;
+            let code2 = str.charCodeAt(i);
+            let surrogate = 0x10000 + (((code & 0x3ff) << 10) | (code2 & 0x3ff));
+            utf8Bytes.push(
+                0xf0 | (surrogate >> 18),
+                0x80 | ((surrogate >> 12) & 0x3f),
+                0x80 | ((surrogate >> 6) & 0x3f),
+                0x80 | (surrogate & 0x3f)
+            );
+        }
+    }
+    
+    let res = '';
+    let i = 0;
+    while (i < utf8Bytes.length) {
+        let b1 = utf8Bytes[i++];
+        let b2 = i < utf8Bytes.length ? utf8Bytes[i++] : NaN;
+        let b3 = i < utf8Bytes.length ? utf8Bytes[i++] : NaN;
+
+        res += chars.charAt(b1 >> 2);
+        res += chars.charAt(((b1 & 3) << 4) | (isNaN(b2) ? 0 : b2 >> 4));
+        res += !isNaN(b2) ? chars.charAt(((b2 & 15) << 2) | (isNaN(b3) ? 0 : b3 >> 6)) : '=';
+        res += !isNaN(b3) ? chars.charAt(b3 & 63) : '=';
+    }
+    return res;
+}
+
+function decodeBase64Utf8(base64) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    let str = base64.replace(/[^A-Za-z0-9+/=]/g, '');
+    let bytes = [];
+
+    let i = 0;
+    while (i < str.length) {
+        let enc1 = chars.indexOf(str.charAt(i++));
+        let enc2 = chars.indexOf(str.charAt(i++));
+        let enc3 = chars.indexOf(str.charAt(i++));
+        let enc4 = chars.indexOf(str.charAt(i++));
+
+        let chr1 = (enc1 << 2) | (enc2 >> 4);
+        let chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+        let chr3 = ((enc3 & 3) << 6) | enc4;
+
+        bytes.push(chr1);
+        if (enc3 !== 64 && !isNaN(chr2)) bytes.push(chr2);
+        if (enc4 !== 64 && !isNaN(chr3)) bytes.push(chr3);
+    }
+
+    let out = '';
+    let pos = 0;
+    while (pos < bytes.length) {
+        let c1 = bytes[pos++];
+        if (c1 < 128) {
+            out += String.fromCharCode(c1);
+        } else if (c1 > 191 && c1 < 224) {
+            let c2 = bytes[pos++];
+            out += String.fromCharCode(((c1 & 31) << 6) | (c2 & 63));
+        } else if (c1 > 223 && c1 < 240) {
+            let c2 = bytes[pos++];
+            let c3 = bytes[pos++];
+            out += String.fromCharCode(((c1 & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+        } else {
+            let c2 = bytes[pos++];
+            let c3 = bytes[pos++];
+            let c4 = bytes[pos++];
+            let u = (((c1 & 7) << 18) | ((c2 & 63) << 12) | ((c3 & 63) << 6) | (c4 & 63)) - 0x10000;
+            out += String.fromCharCode(0xd800 + (u >> 10), 0xdc00 + (u & 0x3ff));
+        }
+    }
+    return out;
+}
+
 export async function exportAllData() {
     try {
         const subjects = await AsyncStorage.getItem(STORAGE_KEYS.SUBJECTS);
@@ -182,35 +266,8 @@ export async function exportAllData() {
         };
         
         const jsonStr = JSON.stringify(backupObj);
-        // Simple base64 encoding (UTF-8 safe)
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        // Convert string to UTF-8 bytes to ensure special characters encode cleanly
-        const utf8 = unescape(encodeURIComponent(jsonStr));
-        let result = '';
-        let i = 0;
-        while (i < utf8.length) {
-            const c1 = utf8.charCodeAt(i++) & 0xff;
-            if (i === utf8.length) {
-                result += chars.charAt(c1 >> 2);
-                result += chars.charAt((c1 & 0x3) << 4);
-                result += '==';
-                break;
-            }
-            const c2 = utf8.charCodeAt(i++);
-            if (i === utf8.length) {
-                result += chars.charAt(c1 >> 2);
-                result += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4));
-                result += chars.charAt((c2 & 0xF) << 2);
-                result += '=';
-                break;
-            }
-            const c3 = utf8.charCodeAt(i++);
-            result += chars.charAt(c1 >> 2);
-            result += chars.charAt(((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4));
-            result += chars.charAt(((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6));
-            result += chars.charAt(c3 & 0x3F);
-        }
-        return `COLASI_BKP_${result}`;
+        const base64 = encodeBase64Utf8(jsonStr);
+        return `COLASI_BKP_${base64}`;
     } catch (e) {
         console.error('Error exporting data', e);
         return null;
@@ -218,37 +275,30 @@ export async function exportAllData() {
 }
 
 /**
- * Import all local data from a backup string
+ * Import all local data from a backup string or raw JSON
  */
-export async function importAllData(backupString) {
+export async function importAllData(backupInput) {
     try {
-        if (!backupString || !backupString.startsWith('COLASI_BKP_')) {
-            throw new Error('Invalid backup code format');
-        }
-        const base64 = backupString.substring(11);
+        if (!backupInput) throw new Error('Empty backup input');
         
-        // Base64 decoding
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        let str = base64.replace(/=+$/, '');
-        let raw = '';
-        let i = 0;
-        let bc = 0;
-        let bs = 0;
-        while (i < str.length) {
-            const char = str.charAt(i++);
-            const idx = chars.indexOf(char);
-            if (idx === -1) continue;
-            
-            bs = bc % 4 === 0 ? idx : (bs << 6) + idx;
-            if (bc++ % 4) {
-                raw += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6)));
+        let cleaned = backupInput.trim().replace(/\s+/g, '');
+        let backupObj = null;
+
+        // Check if raw JSON paste
+        if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+            backupObj = JSON.parse(cleaned);
+        } else {
+            if (cleaned.startsWith('COLASI_BKP_')) {
+                cleaned = cleaned.substring(11);
             }
+            const jsonStr = decodeBase64Utf8(cleaned);
+            backupObj = JSON.parse(jsonStr);
         }
-        
-        // Convert UTF-8 raw string back
-        const result = decodeURIComponent(escape(raw));
-        const backupObj = JSON.parse(result);
-        
+
+        if (!backupObj || typeof backupObj !== 'object') {
+            throw new Error('Invalid backup data structure');
+        }
+
         if (backupObj.subjects) {
             await AsyncStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(backupObj.subjects));
         }
