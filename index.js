@@ -1,16 +1,15 @@
 import { registerRootComponent } from 'expo';
-import { registerWidgetTaskHandler } from 'react-native-android-widget';
 import { widgetTaskHandler } from './src/widgets/widgetTaskHandler';
-
 import App from './App';
 
 // Register Android Home Screen Widget background task handler safely
 try {
-    if (typeof registerWidgetTaskHandler === 'function') {
-        registerWidgetTaskHandler(widgetTaskHandler);
+    const widgetModule = require('react-native-android-widget');
+    if (widgetModule && widgetModule.registerWidgetTaskHandler) {
+        widgetModule.registerWidgetTaskHandler(widgetTaskHandler);
     }
 } catch (e) {
-    // Ignore in Expo Go
+    // Native module not linked in Expo Go
 }
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

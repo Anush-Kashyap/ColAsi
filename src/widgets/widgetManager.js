@@ -1,7 +1,16 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { requestWidgetUpdate } from 'react-native-android-widget';
 import { TimetableWidget } from './TimetableWidget';
+
+let requestWidgetUpdateFn = null;
+try {
+    const widgetModule = require('react-native-android-widget');
+    if (widgetModule && widgetModule.requestWidgetUpdate) {
+        requestWidgetUpdateFn = widgetModule.requestWidgetUpdate;
+    }
+} catch (e) {
+    // Native module not linked in Expo Go
+}
 
 const STORAGE_KEYS = {
     SUBJECTS: 'colasi_subjects_native',
@@ -40,6 +49,10 @@ const getTodayDetails = () => {
  */
 export async function updateTimetableWidget() {
     try {
+        if (!requestWidgetUpdateFn) {
+            return;
+        }
+
         const { dateStr, dateFormatted, dayName } = getTodayDetails();
 
         // 1. Load data from AsyncStorage
@@ -74,25 +87,19 @@ export async function updateTimetableWidget() {
             });
 
         // 4. Request Widget Refresh safely
-        if (typeof requestWidgetUpdate === 'function') {
-            try {
-                await requestWidgetUpdate({
-                    widgetName: 'ColAsiTimetable',
-                    renderWidget: () => (
-                        <TimetableWidget
-                            dayName={dayName}
-                            dateFormatted={dateFormatted}
-                            classes={dayClasses}
-                            isHoliday={isHoliday}
-                            holidayTitle={holidayEvent ? holidayEvent.title : ''}
-                        />
-                    ),
-                });
-            } catch (widgetErr) {
-                // Ignore native widget error in Expo Go
-            }
-        }
+        await requestWidgetUpdateFn({
+            widgetName: 'ColAsiTimetable',
+            renderWidget: () => (
+                <TimetableWidget
+                    dayName={dayName}
+                    dateFormatted={dateFormatted}
+                    classes={dayClasses}
+                    isHoliday={isHoliday}
+                    holidayTitle={holidayEvent ? holidayEvent.title : ''}
+                />
+            ),
+        });
     } catch (e) {
-        // Ignore widget manager errors
+        // Safe catch for widget manager
     }
 }

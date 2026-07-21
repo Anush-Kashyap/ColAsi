@@ -8,7 +8,7 @@ import { colors } from './src/styles/theme';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
-import { WidgetPreview } from 'react-native-android-widget';
+import { SafeWidgetPreview } from './src/widgets/SafeWidgetPreview';
 import { TimetableWidget } from './src/widgets/TimetableWidget';
 import * as WidgetManager from './src/widgets/widgetManager';
 
@@ -185,7 +185,7 @@ export default function App() {
 
                         {widgetPreviewVisible && (
                             <View style={{ marginTop: 12, alignItems: 'center', backgroundColor: '#161412', padding: 10, borderRadius: 16 }}>
-                                <WidgetPreview
+                                <SafeWidgetPreview
                                     renderWidget={() => (
                                         <TimetableWidget
                                             dayName="Tuesday"
