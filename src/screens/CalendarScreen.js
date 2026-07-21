@@ -25,7 +25,6 @@ const NITC_ACADEMIC_CALENDAR_2026 = [
     { date: '2026-08-15', title: '🇮🇳 Independence Day', description: 'National Holiday', type: 'holiday' },
     { date: '2026-08-25', title: '🌙 Id-E-Milad*', description: 'Holiday (*Depends on moon sighting)', type: 'holiday' },
     { date: '2026-08-26', title: '🌸 Onam', description: 'Holiday', type: 'holiday' },
-    { date: '2026-09-01', title: '🏛️ Institute Foundation Day', description: 'Institute Event', type: 'holiday' },
     { date: '2026-10-02', title: '🕊️ Mahatma Gandhi Jayanti', description: 'National Holiday', type: 'holiday' },
     { date: '2026-10-09', title: '🎉 Tathva Tech Fest (Day 1)', description: 'Annual Tech Festival', type: 'holiday' },
     { date: '2026-10-10', title: '🎉 Tathva Tech Fest (Day 2)', description: 'Annual Tech Festival', type: 'holiday' },
@@ -63,6 +62,7 @@ const NITC_ACADEMIC_CALENDAR_2026 = [
     { date: '2026-07-21', title: '🚀 First Instructional Day', description: 'Classes Begin', type: 'academic' },
     { date: '2026-07-30', title: '⚠️ Last Date for Add/Drop Courses', description: 'Course Registration Deadline', type: 'academic' },
     { date: '2026-08-22', title: '🎓 22nd Convocation', description: 'Graduation Ceremony', type: 'academic' },
+    { date: '2026-09-01', title: '🏛️ Institute Foundation Day', description: 'Institute Event (Instructional / Working Day)', type: 'academic' },
     { date: '2026-11-05', title: '📅 Friday Time Table Day', description: 'Instructional Day with Friday Schedule', type: 'academic' },
     { date: '2026-11-10', title: '🏁 Last Instructional Day', description: 'End of Classes', type: 'academic' },
     { date: '2026-12-10', title: '📊 Result Declaration', description: 'Monsoon Semester Results', type: 'academic' },
@@ -99,8 +99,12 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         let updatedEvents = [...currentEvents];
 
         for (const item of NITC_ACADEMIC_CALENDAR_2026) {
-            const exists = updatedEvents.some(e => e.date === item.date && e.title === item.title);
-            if (!exists) {
+            const idx = updatedEvents.findIndex(e => e.date === item.date && e.title === item.title);
+            if (idx !== -1) {
+                // Update type & description if changed
+                updatedEvents[idx].type = item.type;
+                updatedEvents[idx].description = item.description;
+            } else {
                 let notifIds = [];
                 if (item.type === 'exam') {
                     notifIds = await scheduleEventNotifications(item.title, 'Academic Calendar', item.date);

@@ -162,7 +162,7 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
             }
 
             const fileUri = `${FileSystem.cacheDirectory}colasi_backup.json`;
-            await FileSystem.writeAsStringAsync(fileUri, code, { encoding: FileSystem.EncodingType.UTF8 });
+            await FileSystem.writeAsStringAsync(fileUri, code, { encoding: 'utf8' });
 
             const isAvailable = await Sharing.isAvailableAsync();
             if (isAvailable) {
@@ -189,7 +189,7 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const fileUri = result.assets[0].uri;
-                const fileContent = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
+                const fileContent = await FileSystem.readAsStringAsync(fileUri, { encoding: 'utf8' });
                 
                 Alert.alert(
                     'Confirm Restore File',
