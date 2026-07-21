@@ -13,10 +13,13 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
     let TextComp = ({ text, style }) => <Text style={style}>{text}</Text>;
 
     try {
-        const widgetModule = require('react-native-android-widget');
-        if (widgetModule && widgetModule.FlexWidget && widgetModule.TextWidget) {
-            FlexComp = widgetModule.FlexWidget;
-            TextComp = widgetModule.TextWidget;
+        const { NativeModules } = require('react-native');
+        if (NativeModules && NativeModules.AndroidWidget) {
+            const widgetModule = require('react-native-android-widget');
+            if (widgetModule && widgetModule.FlexWidget && widgetModule.TextWidget) {
+                FlexComp = widgetModule.FlexWidget;
+                TextComp = widgetModule.TextWidget;
+            }
         }
     } catch (e) {
         // Native module not linked in Expo Go

@@ -4,7 +4,7 @@ import { colors, fonts } from '../styles/theme';
 
 let WidgetPreviewComponent = null;
 
-if (NativeModules && NativeModules.RNAndroidWidget) {
+if (NativeModules && NativeModules.AndroidWidget) {
     try {
         const widgetModule = require('react-native-android-widget');
         if (widgetModule && widgetModule.WidgetPreview) {

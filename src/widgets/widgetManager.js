@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TimetableWidget } from './TimetableWidget';
 
 let requestWidgetUpdateFn = null;
-if (NativeModules && NativeModules.RNAndroidWidget) {
+if (NativeModules && NativeModules.AndroidWidget) {
     try {
         const widgetModule = require('react-native-android-widget');
         if (widgetModule && widgetModule.requestWidgetUpdate) {

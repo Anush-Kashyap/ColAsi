@@ -4,7 +4,7 @@ import { widgetTaskHandler } from './src/widgets/widgetTaskHandler';
 import App from './App';
 
 // Register Android Home Screen Widget background task handler only if native module is present
-if (NativeModules && NativeModules.RNAndroidWidget) {
+if (NativeModules && NativeModules.AndroidWidget) {
     try {
         const widgetModule = require('react-native-android-widget');
         if (widgetModule && widgetModule.registerWidgetTaskHandler) {
