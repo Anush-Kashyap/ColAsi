@@ -11,6 +11,9 @@ import SubjectCard from '../components/SubjectCard';
 import BottomSheet from '../components/BottomSheet';
 import SubjectDetailScreen from './SubjectDetailScreen';
 import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
     const [subjects, setSubjects] = useState([]);
@@ -91,6 +94,78 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
             });
         } catch (e) {
             Alert.alert('Share Failed', 'Could not open share options.');
+        }
+    };
+
+    const handleExportFile = async () => {
+        try {
+            const code = await DB.exportAllData();
+            if (!code) {
+                Alert.alert('Export Failed', 'Unable to generate backup payload.');
+                return;
+            }
+
+            const fileUri = `${FileSystem.cacheDirectory}colasi_backup.json`;
+            await FileSystem.writeAsStringAsync(fileUri, code, { encoding: FileSystem.EncodingType.UTF8 });
+
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (isAvailable) {
+                await Sharing.shareAsync(fileUri, {
+                    mimeType: 'application/json',
+                    dialogTitle: 'Save or Share ColAsi Backup File',
+                    UTI: 'public.json'
+                });
+            } else {
+                Alert.alert('Sharing Unavailable', 'Unable to open file sharing on this device.');
+            }
+        } catch (e) {
+            console.error('Error exporting file', e);
+            Alert.alert('Export Failed', 'Could not create backup file.');
+        }
+    };
+
+    const handleImportFile = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: '*/*',
+                copyToCacheDirectory: true
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const fileUri = result.assets[0].uri;
+                const fileContent = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
+                
+                Alert.alert(
+                    'Confirm Restore File',
+                    'This will overwrite all current subjects, timetable slots, catalogs, and tasks on this device. Are you sure?',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Restore File',
+                            onPress: async () => {
+                                const res = await DB.importAllData(fileContent);
+                                if (res && res.success) {
+                                    Alert.alert('Restore Success', 'Your spaces have been successfully loaded from file!', [
+                                        {
+                                            text: 'OK',
+                                            onPress: () => {
+                                                setImportSheetVisible(false);
+                                                loadSubjects();
+                                                onRefreshRequest();
+                                            }
+                                        }
+                                    ]);
+                                } else {
+                                    Alert.alert('Restore Failed', res?.reason || 'Invalid or corrupt backup file.');
+                                }
+                            }
+                        }
+                    ]
+                );
+            }
+        } catch (e) {
+            console.error('Error picking document', e);
+            Alert.alert('File Error', 'Could not read selected file.');
         }
     };
 
@@ -241,13 +316,21 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                         <Text style={styles.backupPanelTitle}>🔄 Cozy Backup & Sync</Text>
                         <Text style={styles.backupPanelDesc}>Transfer all your data (subjects, timetable, catalog, and tasks) to another phone.</Text>
                         <View style={styles.backupRow}>
-                            <TouchableOpacity style={styles.backupBtn} onPress={handleExportData}>
-                                <Text style={styles.backupBtnText}>📤 Export Code</Text>
+                            <TouchableOpacity style={styles.backupBtn} onPress={handleExportFile}>
+                                <Text style={styles.backupBtnText}>📁 Save Backup File</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.backupBtn, styles.backupBtnImport]} onPress={() => { setImportString(''); setImportSheetVisible(true); }}>
-                                <Text style={styles.backupBtnText}>📥 Import Code</Text>
+                            <TouchableOpacity style={[styles.backupBtn, styles.backupBtnImport]} onPress={handleImportFile}>
+                                <Text style={styles.backupBtnText}>📥 Pick Backup File</Text>
                             </TouchableOpacity>
                         </View>
+                        <TouchableOpacity 
+                            style={{ alignSelf: 'center', marginTop: 12 }} 
+                            onPress={handleExportData}
+                        >
+                            <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.gold, textDecorationLine: 'underline' }}>
+                                View / Copy Text Code
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 }
             />
@@ -287,8 +370,14 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
 
             {/* Import Sheet */}
             <BottomSheet visible={importSheetVisible} onClose={() => setImportSheetVisible(false)}>
-                <Text style={styles.sheetTitle}>Import Backup</Text>
-                <Text style={styles.backupInfoText}>Paste the backup code from your other phone below:</Text>
+                <Text style={styles.sheetTitle}>Import Backup Code</Text>
+                <Text style={styles.backupInfoText}>Paste the backup code from your other phone below or select a file:</Text>
+                <TouchableOpacity 
+                    style={[styles.backupBtn, { marginBottom: 14, borderColor: colors.gold }]} 
+                    onPress={handleImportFile}
+                >
+                    <Text style={[styles.backupBtnText, { color: colors.gold }]}>📁 Pick Backup File (.json)</Text>
+                </TouchableOpacity>
                 <TextInput
                     style={[styles.input, styles.codeArea]}
                     placeholder="Paste COLASI_BKP_ code here..."
