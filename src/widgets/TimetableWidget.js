@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text } from 'react-native';
 
 /**
- * Tall Rectangular Home Screen Widget for ColAsi (More Height, Less Width)
- * Displays today's schedule, start/end times, room locations, and subject badges.
+ * 4x3 Scrollable Home Screen Widget for ColAsi (4 cols wide x 3 rows high)
+ * Displays today's schedule with scrollable subject cards, start/end times, room locations, and badges.
  */
 export function TimetableWidget({ dayName = '', dateFormatted = '', classes = [], isHoliday = false, holidayTitle = '' }) {
     const displayDay = dayName.toUpperCase();
@@ -11,6 +11,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
     // Dynamically resolve widget primitive components at render time
     let FlexComp = View;
     let TextComp = ({ text, style }) => <Text style={style}>{text}</Text>;
+    let ListComp = ({ style, children }) => <View style={style}>{children}</View>;
 
     try {
         const { NativeModules } = require('react-native');
@@ -19,6 +20,9 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
             if (widgetModule && widgetModule.FlexWidget && widgetModule.TextWidget) {
                 FlexComp = widgetModule.FlexWidget;
                 TextComp = widgetModule.TextWidget;
+                if (widgetModule.ListWidget) {
+                    ListComp = widgetModule.ListWidget;
+                }
             }
         }
     } catch (e) {
@@ -43,8 +47,8 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: 10,
-                    paddingBottom: 8,
+                    marginBottom: 8,
+                    paddingBottom: 6,
                     borderBottomWidth: 1,
                     borderBottomColor: '#ECC87540',
                 }}
@@ -89,7 +93,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                 </FlexComp>
             </FlexComp>
 
-            {/* Main Timetable Content */}
+            {/* Main Scrollable Timetable Content */}
             {isHoliday ? (
                 <FlexComp
                     style={{
@@ -153,23 +157,24 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     />
                 </FlexComp>
             ) : (
-                <FlexComp style={{ flexDirection: 'column', flex: 1 }}>
-                    {classes.slice(0, 6).map((cls, idx) => (
+                <ListComp style={{ height: 'match_parent', width: 'match_parent' }}>
+                    {classes.map((cls, idx) => (
                         <FlexComp
                             key={idx}
                             style={{
                                 flexDirection: 'row',
                                 backgroundColor: '#221F1C',
                                 borderRadius: 12,
-                                padding: 8,
+                                padding: 9,
                                 marginBottom: 6,
                                 alignItems: 'center',
-                                borderLeftWidth: 3,
+                                borderLeftWidth: 4,
                                 borderLeftColor: cls.color || '#ECC875',
+                                width: 'match_parent',
                             }}
                         >
                             {/* Class Time Column (Highlighted in Warm Gold) */}
-                            <FlexComp style={{ flexDirection: 'column', width: 56, marginRight: 6 }}>
+                            <FlexComp style={{ flexDirection: 'column', width: 62, marginRight: 8 }}>
                                 <TextComp
                                     text={cls.startTime}
                                     style={{
@@ -209,9 +214,10 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                                                 fontSize: 8,
                                                 fontWeight: 'bold',
                                                 backgroundColor: '#161412',
-                                                paddingHorizontal: 4,
+                                                paddingHorizontal: 5,
                                                 paddingVertical: 1,
                                                 borderRadius: 4,
+                                                marginLeft: 4,
                                             }}
                                         />
                                     ) : null}
@@ -230,7 +236,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             </FlexComp>
                         </FlexComp>
                     ))}
-                </FlexComp>
+                </ListComp>
             )}
         </FlexComp>
     );

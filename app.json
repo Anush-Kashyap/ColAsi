@@ -30,11 +30,11 @@
             {
               "name": "ColAsiTimetable",
               "label": "ColAsi Today Schedule",
-              "minWidth": "160dp",
-              "minHeight": "280dp",
-              "targetCellWidth": 2,
-              "targetCellHeight": 4,
-              "description": "Tall rectangular widget displaying today's class schedule, room numbers, and attendance times.",
+              "minWidth": "280dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "description": "4x3 scrollable widget displaying today's class schedule, room numbers, and attendance times.",
               "updatePeriodMillis": 1800000
             }
           ]

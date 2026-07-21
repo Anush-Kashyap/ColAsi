@@ -197,8 +197,8 @@ export default function App() {
                                             ]}
                                         />
                                     )}
-                                    width={200}
-                                    height={300}
+                                    width={310}
+                                    height={200}
                                 />
                             </View>
                         )}
