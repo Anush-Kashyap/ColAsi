@@ -173,6 +173,10 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     };
 
     const getDayName = (dateStr) => {
+        // Special Academic Timetable Overrides (e.g. Nov 5, 2026 runs Friday timetable per NITC calendar)
+        if (dateStr === '2026-11-05') {
+            return 'Friday';
+        }
         try {
             const parts = dateStr.split('-');
             if (parts.length === 3) {
@@ -447,7 +451,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                 {/* 2. Day Timetable Section (Hidden if isHoliday) */}
                 <View style={styles.daySectionHeader}>
                     <Text style={styles.daySectionTitle}>
-                        📖 Classes for {selectedDayName || 'Selected Day'}
+                        📖 Classes for {selectedDate === '2026-11-05' ? 'Friday (Nov 5 Friday Schedule Override)' : (selectedDayName || 'Selected Day')}
                     </Text>
                     <Text style={styles.daySectionCount}>{isHoliday ? 'Holiday' : `${dayClasses.length} sessions`}</Text>
                 </View>
