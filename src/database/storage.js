@@ -258,14 +258,57 @@ export async function exportAllData() {
         const catalogs = await AsyncStorage.getItem(STORAGE_KEYS.CATALOGS);
         const events = await AsyncStorage.getItem(STORAGE_KEYS.EVENTS);
         
-        const backupObj = {
-            subjects: subjects ? JSON.parse(subjects) : [],
-            timetable: timetable ? JSON.parse(timetable) : [],
-            catalogs: catalogs ? JSON.parse(catalogs) : {},
-            events: events ? JSON.parse(events) : []
+        const rawSubjects = subjects ? JSON.parse(subjects) : [];
+        const rawTimetable = timetable ? JSON.parse(timetable) : [];
+        const rawCatalogs = catalogs ? JSON.parse(catalogs) : {};
+        const rawEvents = events ? JSON.parse(events) : [];
+
+        // Minify keys for 75%+ payload compression
+        const minifiedCatalogs = {};
+        for (const subId in rawCatalogs) {
+            minifiedCatalogs[subId] = (rawCatalogs[subId] || []).map(m => ({
+                i: m.id,
+                n: m.name,
+                tp: (m.topics || []).map(topic => ({
+                    i: topic.id,
+                    t: topic.title,
+                    c: topic.classCovered ? 1 : 0,
+                    s: topic.selfCovered ? 1 : 0
+                }))
+            }));
+        }
+
+        const compactObj = {
+            s: rawSubjects.map(sub => ({
+                i: sub.id,
+                n: sub.name,
+                sn: sub.shortName,
+                c: sub.color,
+                tc: sub.totalClasses,
+                bc: sub.bunkedClasses
+            })),
+            t: rawTimetable.map(slot => ({
+                i: slot.id,
+                d: slot.day,
+                sh: slot.startHour,
+                eh: slot.endHour,
+                si: slot.subjectId,
+                r: slot.room || '',
+                no: slot.notes || ''
+            })),
+            c: minifiedCatalogs,
+            e: rawEvents.map(ev => ({
+                i: ev.id,
+                dt: ev.date,
+                t: ev.title,
+                d: ev.description || '',
+                tp: ev.type,
+                si: ev.subjectId || '',
+                n: ev.notificationIds || []
+            }))
         };
         
-        const jsonStr = JSON.stringify(backupObj);
+        const jsonStr = JSON.stringify(compactObj);
         const base64 = encodeBase64Utf8(jsonStr);
         return `COLASI_BKP_${base64}`;
     } catch (e) {
@@ -282,35 +325,105 @@ export async function importAllData(backupInput) {
         if (!backupInput) throw new Error('Empty backup input');
         
         let cleaned = backupInput.trim().replace(/\s+/g, '');
-        let backupObj = null;
+        let rawObj = null;
 
         // Check if raw JSON paste
         if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-            backupObj = JSON.parse(cleaned);
+            rawObj = JSON.parse(cleaned);
         } else {
             if (cleaned.startsWith('COLASI_BKP_')) {
                 cleaned = cleaned.substring(11);
             }
             const jsonStr = decodeBase64Utf8(cleaned);
-            backupObj = JSON.parse(jsonStr);
+            rawObj = JSON.parse(jsonStr);
         }
 
-        if (!backupObj || typeof backupObj !== 'object') {
+        if (!rawObj || typeof rawObj !== 'object') {
             throw new Error('Invalid backup data structure');
         }
 
-        if (backupObj.subjects) {
-            await AsyncStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(backupObj.subjects));
+        // Expand minified or standard backup format
+        let finalSubjects = [];
+        let finalTimetable = [];
+        let finalCatalogs = {};
+        let finalEvents = [];
+
+        // 1. Subjects
+        if (Array.isArray(rawObj.s)) {
+            finalSubjects = rawObj.s.map(item => ({
+                id: item.i,
+                name: item.n,
+                shortName: item.sn,
+                color: item.c,
+                totalClasses: item.tc || 0,
+                bunkedClasses: item.bc || 0
+            }));
+        } else if (Array.isArray(rawObj.subjects)) {
+            finalSubjects = rawObj.subjects;
         }
-        if (backupObj.timetable) {
-            await AsyncStorage.setItem(STORAGE_KEYS.TIMETABLE, JSON.stringify(backupObj.timetable));
+
+        // 2. Timetable
+        if (Array.isArray(rawObj.t)) {
+            finalTimetable = rawObj.t.map(item => ({
+                id: item.i,
+                day: item.d,
+                startHour: item.sh,
+                endHour: item.eh,
+                subjectId: item.si,
+                room: item.r || '',
+                notes: item.no || ''
+            }));
+        } else if (Array.isArray(rawObj.timetable)) {
+            finalTimetable = rawObj.timetable;
         }
-        if (backupObj.catalogs) {
-            await AsyncStorage.setItem(STORAGE_KEYS.CATALOGS, JSON.stringify(backupObj.catalogs));
+
+        // 3. Catalogs
+        if (rawObj.c && typeof rawObj.c === 'object') {
+            for (const subId in rawObj.c) {
+                const mods = rawObj.c[subId];
+                if (Array.isArray(mods)) {
+                    finalCatalogs[subId] = mods.map(m => {
+                        if (m.tp || m.top) {
+                            const topicsList = m.tp || m.top || [];
+                            return {
+                                id: m.i || m.id,
+                                name: m.n || m.name,
+                                topics: topicsList.map(tp => ({
+                                    id: tp.i || tp.id,
+                                    title: tp.t || tp.title,
+                                    classCovered: tp.c === 1 || tp.classCovered === true,
+                                    selfCovered: tp.s === 1 || tp.selfCovered === true
+                                }))
+                            };
+                        }
+                        return m;
+                    });
+                }
+            }
+        } else if (rawObj.catalogs && typeof rawObj.catalogs === 'object') {
+            finalCatalogs = rawObj.catalogs;
         }
-        if (backupObj.events) {
-            await AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(backupObj.events));
+
+        // 4. Events
+        if (Array.isArray(rawObj.e)) {
+            finalEvents = rawObj.e.map(item => ({
+                id: item.i,
+                date: item.dt || item.d,
+                title: item.t,
+                description: item.d || '',
+                type: item.tp || 'task',
+                subjectId: item.si || '',
+                notificationIds: item.n || []
+            }));
+        } else if (Array.isArray(rawObj.events)) {
+            finalEvents = rawObj.events;
         }
+
+        await AsyncStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(finalSubjects));
+        await AsyncStorage.setItem(STORAGE_KEYS.TIMETABLE, JSON.stringify(finalTimetable));
+        await AsyncStorage.setItem(STORAGE_KEYS.CATALOGS, JSON.stringify(finalCatalogs));
+        await AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(finalEvents));
+        
         return true;
     } catch (e) {
         console.error('Error importing data', e);
