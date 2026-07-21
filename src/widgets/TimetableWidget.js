@@ -44,6 +44,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
             {/* Header Banner */}
             <FlexComp
                 style={{
+                    width: 'match_parent',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center',
