@@ -46,16 +46,22 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
             <FlexComp
                 style={{
                     width: 'match_parent',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     marginBottom: 8,
                     paddingBottom: 6,
                     borderBottomWidth: 1,
                     borderBottomColor: '#ECC87540',
                 }}
             >
-                <FlexComp style={{ flexDirection: 'column' }}>
+                {/* Title & Day Badge Row */}
+                <FlexComp
+                    style={{
+                        width: 'match_parent',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                    }}
+                >
                     <TextComp
                         text="📖 TODAY'S CLASSES"
                         style={{
@@ -64,34 +70,66 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                             fontWeight: 'bold',
                         }}
                     />
+
+                    <FlexComp
+                        style={{
+                            backgroundColor: '#221F1C',
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: '#ECC87540',
+                        }}
+                    >
+                        <TextComp
+                            text={displayDay || 'TODAY'}
+                            style={{
+                                color: '#F4EFEA',
+                                fontSize: 10,
+                                fontWeight: 'bold',
+                            }}
+                        />
+                    </FlexComp>
+                </FlexComp>
+
+                {/* Date & Open App Button Row */}
+                <FlexComp
+                    style={{
+                        width: 'match_parent',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 4,
+                    }}
+                >
                     <TextComp
                         text={dateFormatted || 'NITC Schedule'}
                         style={{
                             color: '#999086',
                             fontSize: 9,
-                            marginTop: 1,
                         }}
                     />
-                </FlexComp>
 
-                <FlexComp
-                    style={{
-                        backgroundColor: '#221F1C',
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#ECC87540',
-                    }}
-                >
-                    <TextComp
-                        text={displayDay || 'TODAY'}
+                    <FlexComp
+                        clickAction="OPEN_APP"
                         style={{
-                            color: '#F4EFEA',
-                            fontSize: 10,
-                            fontWeight: 'bold',
+                            backgroundColor: '#221F1C',
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: '#ECC875',
                         }}
-                    />
+                    >
+                        <TextComp
+                            text="Open App ↗"
+                            style={{
+                                color: '#ECC875',
+                                fontSize: 9,
+                                fontWeight: 'bold',
+                            }}
+                        />
+                    </FlexComp>
                 </FlexComp>
             </FlexComp>
 
@@ -159,7 +197,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     />
                 </FlexComp>
             ) : (
-                <ListComp style={{ flex: 1, width: 'match_parent' }}>
+                <ListComp style={{ height: 'match_parent', width: 'match_parent' }}>
                     {classes.map((cls, idx) => (
                         <FlexComp
                             key={idx}
@@ -240,38 +278,6 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     ))}
                 </ListComp>
             )}
-
-            {/* Footer Bar with Open App Button */}
-            <FlexComp
-                style={{
-                    width: 'match_parent',
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    marginTop: 6,
-                }}
-            >
-                <FlexComp
-                    clickAction="OPEN_APP"
-                    style={{
-                        backgroundColor: '#221F1C',
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: '#ECC875',
-                    }}
-                >
-                    <TextComp
-                        text="Open App ↗"
-                        style={{
-                            color: '#ECC875',
-                            fontSize: 10,
-                            fontWeight: 'bold',
-                        }}
-                    />
-                </FlexComp>
-            </FlexComp>
         </FlexComp>
     );
 }
