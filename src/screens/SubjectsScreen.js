@@ -536,6 +536,8 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                         <Text style={styles.saveBtnText}>Save Subject</Text>
                     </TouchableOpacity>
                 </View>
+            </BottomSheet>
+
             {/* Cloud Sync Code Modal */}
             <BottomSheet visible={cloudSyncModalVisible} onClose={() => setCloudSyncModalVisible(false)}>
                 <Text style={styles.sheetTitle}>🔑 Enter Cloud Sync Code</Text>
