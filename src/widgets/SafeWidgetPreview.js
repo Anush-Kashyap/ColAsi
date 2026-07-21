@@ -22,10 +22,7 @@ export function SafeWidgetPreview({ renderWidget, width = 200, height = 300 }) {
                 <Text style={{ fontFamily: fonts.headingBold, color: colors.gold, fontSize: 13, marginBottom: 4 }}>
                     📱 Home Screen Widget Ready
                 </Text>
-                <Text style={{ fontFamily: fonts.body, color: colors.cream, fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
-                    Android Home Screen Widgets require a compiled APK build (eas build -p android --profile preview).
-                </Text>
-                <Text style={{ fontFamily: fonts.body, color: colors.textSecondary, fontSize: 10, textAlign: 'center', marginTop: 6 }}>
+                <Text style={{ fontFamily: fonts.body, color: colors.textSecondary, fontSize: 10, textAlign: 'center', marginTop: 4 }}>
                     Long-press your phone screen ➔ Widgets ➔ ColAsi Today Schedule!
                 </Text>
             </View>
