@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { colors, fonts } from '../styles/theme';
 
-export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail }) {
+export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail, onOpenVault }) {
     const { name, shortName, color, totalClasses, bunkedClasses } = subject;
     
     // Inline editing states for counters
@@ -185,15 +185,26 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
                     </View>
                 </View>
 
-                {/* Action to view catalog & syllabus */}
-                <TouchableOpacity 
-                    style={styles.catalogButton}
-                    onPress={() => onOpenDetail && onOpenDetail(subject)}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.catalogButtonText}>📚 Syllabus & Module Catalog</Text>
-                    <Text style={styles.catalogButtonArrow}>→</Text>
-                </TouchableOpacity>
+                {/* Action Buttons Row: Syllabus & Vault */}
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                    <TouchableOpacity 
+                        style={[styles.catalogButton, { flex: 1.1 }]}
+                        onPress={() => onOpenDetail && onOpenDetail(subject)}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.catalogButtonText}>📚 Syllabus</Text>
+                        <Text style={styles.catalogButtonArrow}>→</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.catalogButton, { flex: 1, borderColor: colors.gold, backgroundColor: colors.bgTertiary }]}
+                        onPress={() => onOpenVault && onOpenVault(subject)}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={[styles.catalogButtonText, { color: colors.gold }]}>🏛️ Vault</Text>
+                        <Text style={styles.catalogButtonArrow}>→</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );

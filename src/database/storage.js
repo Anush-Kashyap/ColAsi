@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
     SUBJECTS: 'colasi_subjects_native',
     TIMETABLE: 'colasi_timetable_native',
     CATALOGS: 'colasi_catalogs_native',
-    EVENTS: 'colasi_events_native'
+    EVENTS: 'colasi_events_native',
+    VAULTS: 'colasi_vaults_native'
 };
 
 /**
@@ -171,6 +172,48 @@ export async function cleanupEventsForSubject(subjectId) {
         await saveEvents(filtered);
     } catch (e) {
         console.error('Error cleaning up events for subject', e);
+    }
+}
+
+/**
+ * Get all vault items for a specific subject
+ */
+export async function getVaultItems(subjectId) {
+    try {
+        const data = await AsyncStorage.getItem(STORAGE_KEYS.VAULTS);
+        const allVaults = data ? JSON.parse(data) : {};
+        return allVaults[subjectId] || [];
+    } catch (e) {
+        console.error('Error fetching vault items', e);
+        return [];
+    }
+}
+
+/**
+ * Save vault items for a specific subject
+ */
+export async function saveVaultItems(subjectId, items) {
+    try {
+        const data = await AsyncStorage.getItem(STORAGE_KEYS.VAULTS);
+        const allVaults = data ? JSON.parse(data) : {};
+        allVaults[subjectId] = items;
+        await AsyncStorage.setItem(STORAGE_KEYS.VAULTS, JSON.stringify(allVaults));
+    } catch (e) {
+        console.error('Error saving vault items', e);
+    }
+}
+
+/**
+ * Delete all vault items for a deleted subject
+ */
+export async function cleanupVaultForSubject(subjectId) {
+    try {
+        const data = await AsyncStorage.getItem(STORAGE_KEYS.VAULTS);
+        const allVaults = data ? JSON.parse(data) : {};
+        delete allVaults[subjectId];
+        await AsyncStorage.setItem(STORAGE_KEYS.VAULTS, JSON.stringify(allVaults));
+    } catch (e) {
+        console.error('Error cleaning up vault for subject', e);
     }
 }
 
