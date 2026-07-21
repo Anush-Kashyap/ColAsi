@@ -159,7 +159,7 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     />
                 </FlexComp>
             ) : (
-                <ListComp style={{ height: 'match_parent', width: 'match_parent' }}>
+                <ListComp style={{ flex: 1, width: 'match_parent' }}>
                     {classes.map((cls, idx) => (
                         <FlexComp
                             key={idx}
@@ -240,6 +240,38 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                     ))}
                 </ListComp>
             )}
+
+            {/* Footer Bar with Open App Button */}
+            <FlexComp
+                style={{
+                    width: 'match_parent',
+                    flexDirection: 'row',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    marginTop: 6,
+                }}
+            >
+                <FlexComp
+                    clickAction="OPEN_APP"
+                    style={{
+                        backgroundColor: '#221F1C',
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: '#ECC875',
+                    }}
+                >
+                    <TextComp
+                        text="Open App ↗"
+                        style={{
+                            color: '#ECC875',
+                            fontSize: 10,
+                            fontWeight: 'bold',
+                        }}
+                    />
+                </FlexComp>
+            </FlexComp>
         </FlexComp>
     );
 }
