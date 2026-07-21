@@ -35,15 +35,17 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
     const [isUploading, setIsUploading] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const handleGenerateCloudCode = async () => {
+    const handleGenerateCloudCode = async (forceNew = false) => {
         setIsUploading(true);
-        const res = await DB.uploadCloudBackup();
+        const res = await DB.uploadCloudBackup(forceNew);
         setIsUploading(false);
 
         if (res && res.success) {
+            const title = res.isCached ? '☁️ Active Sync Code (Valid for 1hr)' : '☁️ Cloud Code Generated!';
+            const note = res.isCached ? '\n(This code is active for 1 hour. Tap "Generate New" if you want a fresh code.)' : '';
             Alert.alert(
-                '☁️ Cloud Code Generated!',
-                `Your 5-Character Sync Code is:\n\n${res.code}\n\nEnter this code on your other phone to restore your space instantly!`,
+                title,
+                `Your 5-Character Sync Code is:\n\n${res.code}${note}`,
                 [
                     {
                         text: '📋 Copy Code',
@@ -51,6 +53,10 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                             await Clipboard.setStringAsync(res.code);
                             Alert.alert('Copied!', `Sync Code ${res.code} copied to clipboard.`);
                         }
+                    },
+                    {
+                        text: '🔄 Generate New',
+                        onPress: () => handleGenerateCloudCode(true)
                     },
                     { text: 'OK' }
                 ]

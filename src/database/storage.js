@@ -465,8 +465,20 @@ export async function importAllData(backupInput) {
 /**
  * Upload backup to free cloud server and get a 5-character short code
  */
-export async function uploadCloudBackup() {
+export async function uploadCloudBackup(forceNew = false) {
     try {
+        if (!forceNew) {
+            const cachedStr = await AsyncStorage.getItem('@colasi_cloud_code');
+            if (cachedStr) {
+                const cached = JSON.parse(cachedStr);
+                const ageMs = Date.now() - (cached.timestamp || 0);
+                const ONE_HOUR_MS = 60 * 60 * 1000;
+                if (ageMs < ONE_HOUR_MS && cached.code) {
+                    return { success: true, code: cached.code, isCached: true };
+                }
+            }
+        }
+
         const payload = await exportAllData();
         if (!payload) return { success: false, reason: 'Failed to generate backup data.' };
 
@@ -487,7 +499,13 @@ export async function uploadCloudBackup() {
             return { success: false, reason: 'Invalid response from cloud server.' };
         }
 
-        return { success: true, code: code.toUpperCase() };
+        const uppercaseCode = code.toUpperCase();
+        await AsyncStorage.setItem('@colasi_cloud_code', JSON.stringify({
+            code: uppercaseCode,
+            timestamp: Date.now()
+        }));
+
+        return { success: true, code: uppercaseCode, isCached: false };
     } catch (e) {
         console.error('Error uploading cloud backup', e);
         return { success: false, reason: 'Network error. Please check your internet connection.' };
