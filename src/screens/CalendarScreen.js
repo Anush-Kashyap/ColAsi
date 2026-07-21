@@ -139,6 +139,24 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         const loadedSubjects = await DB.getSubjects();
         const loadedTimetable = await DB.getTimetable();
 
+        // Auto-migrate Institute Foundation Day (Sept 1) to academic working day
+        let needsSave = false;
+        loadedEvents = loadedEvents.map(ev => {
+            if (ev.title && ev.title.includes('Institute Foundation Day') && ev.type === 'holiday') {
+                needsSave = true;
+                return {
+                    ...ev,
+                    type: 'academic',
+                    description: 'Institute Event (Instructional / Working Day)'
+                };
+            }
+            return ev;
+        });
+
+        if (needsSave) {
+            await DB.saveEvents(loadedEvents);
+        }
+
         // Auto-import academic calendar if not present
         const hasAcademicEvents = loadedEvents.some(e => e.type === 'holiday' || e.type === 'exam' || e.type === 'academic');
         if (!hasAcademicEvents) {
@@ -412,7 +430,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                             <Text style={styles.eventTitle}>{ev.title}</Text>
                                             <View style={[styles.subjectBadge, { backgroundColor: `${badgeColor}30` }]}>
                                                 <Text style={[styles.subjectBadgeText, { color: colors.gold, textTransform: 'capitalize' }]}>
-                                                    {ev.type}
+                                                    {ev.type === 'academic' ? 'Working Day' : ev.type}
                                                 </Text>
                                             </View>
                                         </View>
