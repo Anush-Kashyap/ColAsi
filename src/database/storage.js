@@ -310,7 +310,7 @@ export async function exportAllData() {
         
         const jsonStr = JSON.stringify(compactObj);
         const base64 = encodeBase64Utf8(jsonStr);
-        return `COLASI_BKP_${base64}`;
+        return `COLASI_BKP_${base64}COLASI_END`;
     } catch (e) {
         console.error('Error exporting data', e);
         return null;
@@ -322,24 +322,55 @@ export async function exportAllData() {
  */
 export async function importAllData(backupInput) {
     try {
-        if (!backupInput) throw new Error('Empty backup input');
+        if (!backupInput || !backupInput.trim()) {
+            return { success: false, reason: 'Please paste or share a backup code first.' };
+        }
         
-        let cleaned = backupInput.trim().replace(/\s+/g, '');
-        let rawObj = null;
+        let text = backupInput.trim();
+        let jsonStr = '';
 
-        // Check if raw JSON paste
-        if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
-            rawObj = JSON.parse(cleaned);
+        // 1. Direct JSON check
+        if (text.startsWith('{') || text.startsWith('[')) {
+            jsonStr = text;
         } else {
-            if (cleaned.startsWith('COLASI_BKP_')) {
-                cleaned = cleaned.substring(11);
+            // Extract base64 payload between delimiters
+            const start = text.indexOf('COLASI_BKP_');
+            if (start !== -1) {
+                text = text.substring(start + 11);
+                const end = text.indexOf('COLASI_END');
+                if (end !== -1) {
+                    text = text.substring(0, end);
+                } else {
+                    const match = text.match(/^[A-Za-z0-9+/=]+/);
+                    if (match) text = match[0];
+                }
+            } else {
+                // Fallback: search for long base64 string
+                const match = text.match(/[A-Za-z0-9+/=]{20,}/);
+                if (match) {
+                    text = match[0];
+                } else {
+                    return { success: false, reason: 'No COLASI_BKP_ code found in the text.' };
+                }
             }
-            const jsonStr = decodeBase64Utf8(cleaned);
+
+            text = text.replace(/\s+/g, '');
+            try {
+                jsonStr = decodeBase64Utf8(text);
+            } catch (err) {
+                return { success: false, reason: 'Failed to decode base64 backup code.' };
+            }
+        }
+
+        let rawObj = null;
+        try {
             rawObj = JSON.parse(jsonStr);
+        } catch (err) {
+            return { success: false, reason: 'Backup code is corrupted or incomplete.' };
         }
 
         if (!rawObj || typeof rawObj !== 'object') {
-            throw new Error('Invalid backup data structure');
+            return { success: false, reason: 'Invalid backup structure.' };
         }
 
         // Expand minified or standard backup format
@@ -424,10 +455,10 @@ export async function importAllData(backupInput) {
         await AsyncStorage.setItem(STORAGE_KEYS.CATALOGS, JSON.stringify(finalCatalogs));
         await AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(finalEvents));
         
-        return true;
+        return { success: true };
     } catch (e) {
         console.error('Error importing data', e);
-        return false;
+        return { success: false, reason: e.message || 'Unknown import failure.' };
     }
 }
 

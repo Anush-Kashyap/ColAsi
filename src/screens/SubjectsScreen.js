@@ -52,8 +52,8 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                 {
                     text: 'Restore',
                     onPress: async () => {
-                        const success = await DB.importAllData(importString.trim());
-                        if (success) {
+                        const res = await DB.importAllData(importString.trim());
+                        if (res && res.success) {
                             Alert.alert('Restore Success', 'Your spaces have been successfully loaded!', [
                                 {
                                     text: 'OK',
@@ -66,7 +66,7 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                                 }
                             ]);
                         } else {
-                            Alert.alert('Restore Failed', 'Invalid or corrupt backup code.');
+                            Alert.alert('Restore Failed', res?.reason || 'Invalid or corrupt backup code.');
                         }
                     }
                 }
