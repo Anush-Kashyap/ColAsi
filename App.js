@@ -281,11 +281,9 @@ export default function App() {
                         </TouchableOpacity>
 
                         {widgetPreviewVisible && (
-                                                { startTime: '10:00 AM', endTime: '11:00 AM', subjectName: 'Computer Networks', shortName: 'CN', color: '#3B82F6', room: 'ELHC 204' },
-                                                { startTime: '1:00 PM', endTime: '2:00 PM', subjectName: 'Software Engineering', shortName: 'SE', color: '#10B981', room: 'NLHC 105' }
-                                            ]}
-                                        />
-                                    )}
+                            <View style={{ marginBottom: 16 }}>
+                                <SafeWidgetPreview 
+                                    widget={<TimetableWidget />} 
                                     width={310}
                                     height={200}
                                 />
