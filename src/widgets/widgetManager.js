@@ -85,10 +85,17 @@ export async function updateTimetableWidget() {
             rawDaySlots = timetable.filter(slot => slot.day === dayName);
         }
 
+        const currentHour = new Date().getHours();
+
         const dayClasses = rawDaySlots
             .sort((a, b) => parseInt(a.startHour, 10) - parseInt(b.startHour, 10))
             .map(slot => {
                 const sub = subjects.find(s => s.id === slot.subjectId);
+                const startH = parseInt(slot.startHour, 10);
+                const endH = parseInt(slot.endHour, 10);
+                const isCompleted = !isNaN(endH) && currentHour >= endH;
+                const isOngoing = !isNaN(startH) && !isNaN(endH) && currentHour >= startH && currentHour < endH;
+
                 return {
                     id: slot.id,
                     startTime: formatHour(slot.startHour),
@@ -97,6 +104,8 @@ export async function updateTimetableWidget() {
                     shortName: sub ? (sub.shortName || sub.code || 'CLS') : 'CLS',
                     color: sub ? sub.color : '#ECC875',
                     room: slot.room || '',
+                    isCompleted,
+                    isOngoing,
                 };
             });
 

@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts, Outfit_500Medium, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import { Quicksand_500Medium, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { colors } from './src/styles/theme';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
@@ -27,12 +28,74 @@ export default function App() {
     const [infoModalVisible, setInfoModalVisible] = useState(false);
     const [widgetPreviewVisible, setWidgetPreviewVisible] = useState(false);
 
+    // OTA Floating Update States
+    const [updateStatus, setUpdateStatus] = useState('idle'); // 'idle' | 'checking' | 'downloading' | 'ready' | 'error'
+    const [updateMessage, setUpdateMessage] = useState('');
+    const [floatingUpdateVisible, setFloatingUpdateVisible] = useState(false);
+
     useEffect(() => {
         setupNotifications();
         if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
             WidgetManager.updateTimetableWidget().catch(() => {});
         }
+        // Auto check for OTA updates on app launch
+        checkForUpdates(false);
     }, []);
+
+    const checkForUpdates = async (manual = false) => {
+        if (__DEV__) {
+            if (manual) {
+                setUpdateStatus('ready');
+                setUpdateMessage('🎉 (Demo Mode) Update downloaded! Tap restart.');
+                setFloatingUpdateVisible(true);
+            }
+            return;
+        }
+
+        try {
+            setUpdateStatus('checking');
+            setUpdateMessage('🔍 Checking for app updates...');
+            setFloatingUpdateVisible(true);
+
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+                setUpdateStatus('downloading');
+                setUpdateMessage('⬇️ Downloading update package (OTA)...');
+                await Updates.fetchUpdateAsync();
+                setUpdateStatus('ready');
+                setUpdateMessage('🎉 New update installed! Tap restart to apply.');
+            } else {
+                setUpdateStatus('idle');
+                if (manual) {
+                    setUpdateMessage('✓ ColAsi is up to date!');
+                    setTimeout(() => setFloatingUpdateVisible(false), 3000);
+                } else {
+                    setFloatingUpdateVisible(false);
+                }
+            }
+        } catch (e) {
+            console.log('Update check skipped/bypassed:', e);
+            if (manual) {
+                setUpdateStatus('error');
+                setUpdateMessage('⚠️ Update check skipped (Offline/Expo Go)');
+                setTimeout(() => setFloatingUpdateVisible(false), 3500);
+            } else {
+                setFloatingUpdateVisible(false);
+            }
+        }
+    };
+
+    const handleRestartApp = async () => {
+        try {
+            if (!__DEV__ && Updates.reloadAsync) {
+                await Updates.reloadAsync();
+            } else {
+                setFloatingUpdateVisible(false);
+            }
+        } catch (e) {
+            setFloatingUpdateVisible(false);
+        }
+    };
 
     const setupNotifications = async () => {
         try {
@@ -99,36 +162,58 @@ export default function App() {
                 </View>
                 <View style={styles.statusIndicator}>
                     <View style={styles.pulseDot} />
-                    <Text style={styles.statusText}>Active</Text>
+                    <Text style={styles.statusText}>Live Sync</Text>
                 </View>
             </View>
 
-            {/* Active Page Screen */}
+            {/* Main Screen Content */}
             <View style={styles.mainContent}>
-                {currentTab === 'schedule' ? (
-                    <ScheduleScreen 
-                        refreshTrigger={refreshTrigger} 
-                        onRefreshRequest={triggerRefresh} 
-                    />
-                ) : currentTab === 'calendar' ? (
-                    <CalendarScreen 
-                        refreshTrigger={refreshTrigger} 
-                        onRefreshRequest={triggerRefresh} 
-                    />
-                ) : (
-                    <SubjectsScreen 
-                        refreshTrigger={refreshTrigger} 
-                        onRefreshRequest={triggerRefresh} 
-                    />
-                )}
+                {currentTab === 'schedule' && <ScheduleScreen onRefreshRequest={triggerRefresh} key={refreshTrigger} />}
+                {currentTab === 'calendar' && <CalendarScreen onRefreshRequest={triggerRefresh} key={refreshTrigger} />}
+                {currentTab === 'subjects' && <SubjectsScreen onRefreshRequest={triggerRefresh} key={refreshTrigger} />}
             </View>
 
-            {/* Native Mobile Bottom Navigation Bar */}
+            {/* Floating OTA Update Status Overlay Window */}
+            {floatingUpdateVisible && (
+                <View style={styles.floatingUpdateContainer}>
+                    <View style={styles.floatingUpdateContent}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                            {updateStatus === 'checking' || updateStatus === 'downloading' ? (
+                                <Text style={{ fontSize: 16 }}>⏳</Text>
+                            ) : updateStatus === 'ready' ? (
+                                <Text style={{ fontSize: 16 }}>🚀</Text>
+                            ) : (
+                                <Text style={{ fontSize: 16 }}>ℹ️</Text>
+                            )}
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.floatingUpdateTitle}>
+                                    {updateStatus === 'checking' ? 'Checking Update' : updateStatus === 'downloading' ? 'Downloading Update...' : updateStatus === 'ready' ? 'Update Installed!' : 'App Status'}
+                                </Text>
+                                <Text style={styles.floatingUpdateText} numberOfLines={2}>
+                                    {updateMessage}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {updateStatus === 'ready' ? (
+                            <TouchableOpacity style={styles.restartBtn} onPress={handleRestartApp}>
+                                <Text style={styles.restartBtnText}>🔄 Restart</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity onPress={() => setFloatingUpdateVisible(false)} style={styles.closeIconBtn}>
+                                <Text style={styles.closeIconText}>✕</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
+
+            {/* Cozy Pill Navigation Bar */}
             <View style={styles.navBar}>
                 <TouchableOpacity 
                     style={[styles.navBtn, currentTab === 'schedule' && styles.navBtnActive]}
                     onPress={() => setCurrentTab('schedule')}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                 >
                     <Text style={[styles.navIcon, currentTab === 'schedule' && styles.navIconActive]}>⏰</Text>
                     <Text style={[styles.navText, currentTab === 'schedule' && styles.navTextActive]}>Schedule</Text>
@@ -137,7 +222,7 @@ export default function App() {
                 <TouchableOpacity 
                     style={[styles.navBtn, currentTab === 'calendar' && styles.navBtnActive]}
                     onPress={() => setCurrentTab('calendar')}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                 >
                     <Text style={[styles.navIcon, currentTab === 'calendar' && styles.navIconActive]}>📅</Text>
                     <Text style={[styles.navText, currentTab === 'calendar' && styles.navTextActive]}>Calendar</Text>
@@ -146,52 +231,56 @@ export default function App() {
                 <TouchableOpacity 
                     style={[styles.navBtn, currentTab === 'subjects' && styles.navBtnActive]}
                     onPress={() => setCurrentTab('subjects')}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                 >
                     <Text style={[styles.navIcon, currentTab === 'subjects' && styles.navIconActive]}>📚</Text>
                     <Text style={[styles.navText, currentTab === 'subjects' && styles.navTextActive]}>Subjects</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* App Info Modal */}
-            <Modal visible={infoModalVisible} transparent animationType="fade">
+            {/* Info & App Details Modal */}
+            <Modal
+                visible={infoModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setInfoModalVisible(false)}
+            >
                 <TouchableOpacity 
                     style={styles.modalBackdrop} 
                     activeOpacity={1} 
-                    onPress={() => setInfoModalVisible(false)}
+                    onPress={() => { setWidgetPreviewVisible(false); setInfoModalVisible(false); }}
                 >
-                    <TouchableOpacity activeOpacity={1} style={styles.infoModalCard}>
+                    <TouchableOpacity activeOpacity={1} style={styles.infoModalCard} onPress={e => e.stopPropagation()}>
                         <Text style={styles.infoModalTitle}>ColAsi</Text>
-                        <Text style={styles.infoModalSubtitle}>your cozy college companion</Text>
+                        <Text style={styles.infoModalSubtitle}>Minimalist Student Assistant</Text>
                         
                         <View style={styles.infoDivider} />
-
+                        
                         <Text style={styles.infoModalDesc}>
-                            Manage your class schedules, track attendance, organize subject syllabus catalogs, and stay ahead of academic holidays and exam dates.
+                            Crafted for college students to effortlessly track academic attendance, timetables, and semester goals with dynamic widget integration.
                         </Text>
 
                         <View style={styles.authorBadge}>
-                            <Text style={styles.authorBadgeText}>Made by Anush 🫪</Text>
+                            <Text style={styles.authorBadgeText}>✨ Built with care</Text>
                         </View>
 
                         <TouchableOpacity 
-                            style={[styles.authorBadge, { backgroundColor: colors.bgTertiary, marginTop: 10, borderWidth: 1, borderColor: colors.gold }]}
-                            onPress={() => setWidgetPreviewVisible(!widgetPreviewVisible)}
+                            style={[styles.authorBadge, { backgroundColor: colors.bgSecondary, borderColor: colors.gold, marginBottom: 12 }]}
+                            onPress={() => { setWidgetPreviewVisible(!widgetPreviewVisible); }}
                         >
-                            <Text style={[styles.authorBadgeText, { color: colors.gold }]}>
-                                {widgetPreviewVisible ? '📱 Hide Widget Preview' : '📱 Live Widget Preview'}
+                            <Text style={[styles.authorBadgeText, { color: colors.cream }]}>
+                                {widgetPreviewVisible ? '🙈 Hide Widget Preview' : '📱 Preview Home Screen Widget'}
                             </Text>
                         </TouchableOpacity>
 
+                        <TouchableOpacity 
+                            style={[styles.authorBadge, { backgroundColor: 'rgba(236, 200, 117, 0.15)', borderColor: colors.gold, marginBottom: 16 }]}
+                            onPress={() => checkForUpdates(true)}
+                        >
+                            <Text style={styles.authorBadgeText}>🔍 Check for App Updates (OTA)</Text>
+                        </TouchableOpacity>
+
                         {widgetPreviewVisible && (
-                            <View style={{ marginTop: 12, alignItems: 'center', backgroundColor: '#161412', padding: 10, borderRadius: 16 }}>
-                                <SafeWidgetPreview
-                                    renderWidget={() => (
-                                        <TimetableWidget
-                                            dayName="Tuesday"
-                                            dateFormatted="21 Jul 2026"
-                                            classes={[
-                                                { startTime: '8:00 AM', endTime: '9:00 AM', subjectName: 'Artificial Intelligence', shortName: 'AI', color: '#ECC875', room: 'NLHC 102' },
                                                 { startTime: '10:00 AM', endTime: '11:00 AM', subjectName: 'Computer Networks', shortName: 'CN', color: '#3B82F6', room: 'ELHC 204' },
                                                 { startTime: '1:00 PM', endTime: '2:00 PM', subjectName: 'Software Engineering', shortName: 'SE', color: '#10B981', room: 'NLHC 105' }
                                             ]}
@@ -402,5 +491,59 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit-Bold',
         fontSize: 13,
         color: colors.cream,
+    },
+    floatingUpdateContainer: {
+        position: 'absolute',
+        bottom: 82,
+        left: 16,
+        right: 16,
+        zIndex: 99999,
+        elevation: 10,
+    },
+    floatingUpdateContent: {
+        backgroundColor: '#1C1917',
+        borderWidth: 1.5,
+        borderColor: colors.gold,
+        borderRadius: 18,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+    },
+    floatingUpdateTitle: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 12,
+        color: colors.gold,
+    },
+    floatingUpdateText: {
+        fontFamily: 'Quicksand-Medium',
+        fontSize: 11,
+        color: colors.cream,
+        marginTop: 1,
+    },
+    restartBtn: {
+        backgroundColor: colors.gold,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 12,
+        marginLeft: 8,
+    },
+    restartBtnText: {
+        fontFamily: 'Outfit-Bold',
+        fontSize: 11,
+        color: colors.cream,
+    },
+    closeIconBtn: {
+        padding: 6,
+        marginLeft: 4,
+    },
+    closeIconText: {
+        color: colors.textMuted,
+        fontSize: 14,
     }
 });

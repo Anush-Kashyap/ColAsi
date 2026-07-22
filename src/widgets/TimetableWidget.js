@@ -198,84 +198,95 @@ export function TimetableWidget({ dayName = '', dateFormatted = '', classes = []
                 </FlexComp>
             ) : (
                 <ListComp style={{ height: 'match_parent', width: 'match_parent' }}>
-                    {classes.map((cls, idx) => (
-                        <FlexComp
-                            key={idx}
-                            style={{
-                                flexDirection: 'row',
-                                backgroundColor: '#221F1C',
-                                borderRadius: 12,
-                                padding: 9,
-                                marginBottom: 6,
-                                alignItems: 'center',
-                                borderLeftWidth: 4,
-                                borderLeftColor: cls.color || '#ECC875',
-                                width: 'match_parent',
-                            }}
-                        >
-                            {/* Class Time Column (Highlighted in Warm Gold) */}
-                            <FlexComp style={{ flexDirection: 'column', width: 62, marginRight: 8 }}>
-                                <TextComp
-                                    text={cls.startTime}
-                                    style={{
-                                        color: '#ECC875',
-                                        fontSize: 10,
-                                        fontWeight: 'bold',
-                                    }}
-                                />
-                                <TextComp
-                                    text={cls.endTime}
-                                    style={{
-                                        color: '#ECC875',
-                                        fontSize: 9,
-                                        fontWeight: 'bold',
-                                        marginTop: 1,
-                                    }}
-                                />
-                            </FlexComp>
+                    {classes.map((cls, idx) => {
+                        const isDone = cls.isCompleted;
+                        const isLive = cls.isOngoing;
+                        const cardBorderColor = isDone ? '#10B981' : isLive ? '#ECC875' : (cls.color || '#ECC875');
+                        const timeColor = isDone ? '#10B981' : '#ECC875';
+                        const titleColor = isDone ? '#10B981' : '#F4EFEA';
+                        const displaySubjectName = isDone ? `✓ ${cls.subjectName}` : isLive ? `🔴 ${cls.subjectName}` : cls.subjectName;
+                        const badgeBg = isDone ? 'rgba(16, 185, 129, 0.2)' : '#161412';
+                        const badgeTextColor = isDone ? '#10B981' : (cls.color || '#ECC875');
 
-                            {/* Class Info Column */}
-                            <FlexComp style={{ flexDirection: 'column', flex: 1 }}>
-                                <FlexComp style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        return (
+                            <FlexComp
+                                key={idx}
+                                style={{
+                                    flexDirection: 'row',
+                                    backgroundColor: '#221F1C',
+                                    borderRadius: 12,
+                                    padding: 9,
+                                    marginBottom: 6,
+                                    alignItems: 'center',
+                                    borderLeftWidth: 4,
+                                    borderLeftColor: cardBorderColor,
+                                    width: 'match_parent',
+                                }}
+                            >
+                                {/* Class Time Column */}
+                                <FlexComp style={{ flexDirection: 'column', width: 62, marginRight: 8 }}>
                                     <TextComp
-                                        text={cls.subjectName}
+                                        text={cls.startTime}
                                         style={{
-                                            color: '#F4EFEA',
-                                            fontSize: 11,
+                                            color: timeColor,
+                                            fontSize: 10,
                                             fontWeight: 'bold',
-                                            flex: 1,
                                         }}
                                     />
-                                    {cls.shortName ? (
+                                    <TextComp
+                                        text={cls.endTime}
+                                        style={{
+                                            color: timeColor,
+                                            fontSize: 9,
+                                            fontWeight: 'bold',
+                                            marginTop: 1,
+                                        }}
+                                    />
+                                </FlexComp>
+
+                                {/* Class Info Column */}
+                                <FlexComp style={{ flexDirection: 'column', flex: 1 }}>
+                                    <FlexComp style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <TextComp
-                                            text={cls.shortName}
+                                            text={displaySubjectName}
                                             style={{
-                                                color: cls.color || '#ECC875',
-                                                fontSize: 8,
+                                                color: titleColor,
+                                                fontSize: 11,
                                                 fontWeight: 'bold',
-                                                backgroundColor: '#161412',
-                                                paddingHorizontal: 5,
-                                                paddingVertical: 1,
-                                                borderRadius: 4,
-                                                marginLeft: 4,
+                                                flex: 1,
+                                            }}
+                                        />
+                                        {cls.shortName ? (
+                                            <TextComp
+                                                text={isLive ? 'LIVE' : cls.shortName}
+                                                style={{
+                                                    color: badgeTextColor,
+                                                    fontSize: 8,
+                                                    fontWeight: 'bold',
+                                                    backgroundColor: badgeBg,
+                                                    paddingHorizontal: 5,
+                                                    paddingVertical: 1,
+                                                    borderRadius: 4,
+                                                    marginLeft: 4,
+                                                }}
+                                            />
+                                        ) : null}
+                                    </FlexComp>
+
+                                    {cls.room ? (
+                                        <TextComp
+                                            text={`📍 ${cls.room}`}
+                                            style={{
+                                                color: isDone ? '#10B98190' : '#999086',
+                                                fontSize: 9,
+                                                marginTop: 2,
                                             }}
                                         />
                                     ) : null}
                                 </FlexComp>
-
-                                {cls.room ? (
-                                    <TextComp
-                                        text={`📍 ${cls.room}`}
-                                        style={{
-                                            color: '#999086',
-                                            fontSize: 9,
-                                            marginTop: 2,
-                                        }}
-                                    />
-                                ) : null}
                             </FlexComp>
-                        </FlexComp>
-                    ))}
+                        );
+                    })}
                 </ListComp>
             )}
         </FlexComp>

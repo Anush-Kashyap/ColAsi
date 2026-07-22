@@ -656,30 +656,40 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         const subject = subjects.find(s => s.id === slot.subjectId);
                         const subColor = subject ? subject.color : colors.gold;
 
+                        const now = new Date();
+                        const isSelectedDateToday = selectedDate === todayStr;
+                        const currentHour = now.getHours();
+                        const isCompleted = isSelectedDateToday && currentHour >= slot.endHour;
+                        const isLive = isSelectedDateToday && currentHour >= slot.startHour && currentHour < slot.endHour;
+
+                        const accentColor = isCompleted ? '#10B981' : subColor;
+
                         return (
                             <View 
                                 key={slot.id} 
-                                style={[styles.classCard, { borderLeftColor: subColor }]}
+                                style={[styles.classCard, { borderLeftColor: accentColor }, isCompleted && { backgroundColor: '#141e19' }]}
                             >
                                 <View style={styles.classTimeBox}>
-                                    <Text style={styles.classTimeText}>{formatHour(slot.startHour)}</Text>
-                                    <Text style={styles.classTimeSub}>to</Text>
-                                    <Text style={styles.classTimeText}>{formatHour(slot.endHour)}</Text>
+                                    <Text style={[styles.classTimeText, isCompleted && { color: '#10B981' }]}>{formatHour(slot.startHour)}</Text>
+                                    <Text style={[styles.classTimeSub, isCompleted && { color: '#10B98190' }]}>to</Text>
+                                    <Text style={[styles.classTimeText, isCompleted && { color: '#10B981' }]}>{formatHour(slot.endHour)}</Text>
                                 </View>
 
                                 <View style={styles.classInfo}>
                                     <View style={styles.classTitleRow}>
-                                        <Text style={styles.classNameText}>{subject ? subject.name : 'Class'}</Text>
+                                        <Text style={[styles.classNameText, isCompleted && { color: '#10B981', textDecorationLine: 'line-through' }]}>
+                                            {subject ? subject.name : 'Class'}
+                                        </Text>
                                         {subject && (
-                                            <View style={[styles.subjectBadge, { backgroundColor: `${subColor}20` }]}>
-                                                <Text style={[styles.subjectBadgeText, { color: subColor }]}>
-                                                    {subject.shortName}
+                                            <View style={[styles.subjectBadge, { backgroundColor: isCompleted ? 'rgba(16, 185, 129, 0.2)' : `${subColor}20` }]}>
+                                                <Text style={[styles.subjectBadgeText, { color: accentColor }]}>
+                                                    {isCompleted ? `✓ ${subject.shortName}` : isLive ? `🔴 LIVE` : subject.shortName}
                                                 </Text>
                                             </View>
                                         )}
                                     </View>
-                                    {slot.room ? <Text style={styles.classMetaText}>📍 {slot.room}</Text> : null}
-                                    {slot.notes ? <Text style={styles.classMetaText}>📝 {slot.notes}</Text> : null}
+                                    {slot.room ? <Text style={[styles.classMetaText, isCompleted && { color: '#10B98190' }]}>📍 {slot.room}</Text> : null}
+                                    {slot.notes ? <Text style={[styles.classMetaText, isCompleted && { color: '#10B98180' }]}>📝 {slot.notes}</Text> : null}
                                 </View>
 
                                 <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 }}>

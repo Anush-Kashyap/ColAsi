@@ -7,12 +7,20 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { colors, fonts } from '../styles/theme';
 
-export default function TimelineSlot({ slot, subject, onPress }) {
+export default function TimelineSlot({ slot, subject, onPress, isSelectedDayToday = true }) {
     const { startHour, endHour, room, notes } = slot;
     const { name, shortName, color } = subject;
     
     const duration = endHour - startHour;
     const durationLabel = duration === 1 ? '1 hour' : `${duration} hours`;
+
+    // Check completion status based on current time
+    const now = new Date();
+    const currentHour = now.getHours();
+    const isCompleted = isSelectedDayToday && currentHour >= endHour;
+    const isLive = isSelectedDayToday && currentHour >= startHour && currentHour < endHour;
+
+    const accentColor = isCompleted ? '#10B981' : color;
     
     // Time formatter helper
     const formatHour = (h) => {
@@ -25,7 +33,7 @@ export default function TimelineSlot({ slot, subject, onPress }) {
         <View style={styles.container}>
             {/* Timeline bullet track */}
             <View style={styles.trackColumn}>
-                <View style={[styles.bullet, { backgroundColor: color, shadowColor: color }]} />
+                <View style={[styles.bullet, { backgroundColor: accentColor, shadowColor: accentColor }]} />
                 <View style={styles.trackLine} />
             </View>
 
@@ -34,31 +42,35 @@ export default function TimelineSlot({ slot, subject, onPress }) {
                 <Text style={styles.timeLabel}>
                     {formatHour(startHour)} - {formatHour(endHour)}
                     <Text style={styles.durationLabel}>  •  {durationLabel}</Text>
+                    {isCompleted && <Text style={{ color: '#10B981', fontFamily: fonts.headingBold, fontSize: 11 }}>  •  ✓ Finished</Text>}
+                    {isLive && <Text style={{ color: colors.gold, fontFamily: fonts.headingBold, fontSize: 11 }}>  •  🔴 Live Class</Text>}
                 </Text>
                 
                 <TouchableOpacity 
                     onPress={onPress}
-                    style={[styles.card, { borderLeftColor: color }]}
+                    style={[styles.card, { borderLeftColor: accentColor }, isCompleted && { backgroundColor: '#141e19' }]}
                     activeOpacity={0.8}
                 >
                     <View style={styles.cardHeader}>
-                        <View style={[styles.badge, { backgroundColor: `${color}15` }]}>
-                            <Text style={[styles.badgeText, { color: color }]}>{shortName}</Text>
+                        <View style={[styles.badge, { backgroundColor: isCompleted ? 'rgba(16, 185, 129, 0.2)' : `${color}15` }]}>
+                            <Text style={[styles.badgeText, { color: accentColor }]}>{isCompleted ? `✓ ${shortName}` : isLive ? `🔴 ${shortName}` : shortName}</Text>
                         </View>
                     </View>
                     
-                    <Text style={styles.title}>{name}</Text>
+                    <Text style={[styles.title, isCompleted && { color: '#10B981', textDecorationLine: 'line-through' }]}>
+                        {name}
+                    </Text>
                     
                     {room ? (
                         <View style={styles.metaRow}>
                             {/* Location Pin Icon */}
                             <Text style={styles.metaIcon}>📍</Text>
-                            <Text style={styles.metaText}>{room}</Text>
+                            <Text style={[styles.metaText, isCompleted && { color: '#10B98190' }]}>{room}</Text>
                         </View>
                     ) : null}
 
                     {notes ? (
-                        <Text style={styles.notesText} numberOfLines={2}>
+                        <Text style={[styles.notesText, isCompleted && { color: '#10B98180' }]} numberOfLines={2}>
                             {notes}
                         </Text>
                     ) : null}
