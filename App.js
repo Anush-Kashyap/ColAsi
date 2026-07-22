@@ -261,17 +261,8 @@ export default function App() {
                         </Text>
 
                         <View style={styles.authorBadge}>
-                            <Text style={styles.authorBadgeText}>✨ Built with care</Text>
+                            <Text style={styles.authorBadgeText}>Made by Anush🫪</Text>
                         </View>
-
-                        <TouchableOpacity 
-                            style={[styles.authorBadge, { backgroundColor: colors.bgSecondary, borderColor: colors.gold, marginBottom: 12 }]}
-                            onPress={() => { setWidgetPreviewVisible(!widgetPreviewVisible); }}
-                        >
-                            <Text style={[styles.authorBadgeText, { color: colors.cream }]}>
-                                {widgetPreviewVisible ? '🙈 Hide Widget Preview' : '📱 Preview Home Screen Widget'}
-                            </Text>
-                        </TouchableOpacity>
 
                         <TouchableOpacity 
                             style={[styles.authorBadge, { backgroundColor: 'rgba(236, 200, 117, 0.15)', borderColor: colors.gold, marginBottom: 16 }]}
@@ -279,16 +270,6 @@ export default function App() {
                         >
                             <Text style={styles.authorBadgeText}>🔍 Check for App Updates (OTA)</Text>
                         </TouchableOpacity>
-
-                        {widgetPreviewVisible && (
-                            <View style={{ marginBottom: 16 }}>
-                                <SafeWidgetPreview 
-                                    widget={<TimetableWidget />} 
-                                    width={310}
-                                    height={200}
-                                />
-                            </View>
-                        )}
 
                         <TouchableOpacity 
                             style={styles.infoCloseBtn}
