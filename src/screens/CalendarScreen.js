@@ -398,16 +398,34 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     const handleDeleteDateSlot = async () => {
         if (!editingDateSlotId) return;
 
-        let currentSlots = isDateOverrideActive ? [...(dateOverrides[selectedDate] || [])] : [];
+        const selectedDayName = getDayName(selectedDate);
+        let currentSlots = isDateOverrideActive
+            ? [...(dateOverrides[selectedDate] || [])]
+            : timetable.filter(s => s.day === selectedDayName).map(s => ({ ...s, id: DB.generateUUID() }));
+
         currentSlots = currentSlots.filter(s => s.id !== editingDateSlotId);
 
-        if (currentSlots.length === 0) {
-            await DB.deleteDateOverride(selectedDate);
-        } else {
-            await DB.saveDateOverride(selectedDate, currentSlots);
-        }
+        // Save currentSlots as override for selectedDate (even if empty [])
+        await DB.saveDateOverride(selectedDate, currentSlots);
 
         setDateSlotSheetVisible(false);
+        await loadData();
+        if (onRefreshRequest) onRefreshRequest();
+    };
+
+    const handleDeleteSingleSlotForDate = async (slotToDelete) => {
+        const selectedDayName = getDayName(selectedDate);
+        let currentSlots = isDateOverrideActive
+            ? [...(dateOverrides[selectedDate] || [])]
+            : timetable.filter(s => s.day === selectedDayName).map(s => ({ ...s, id: DB.generateUUID() }));
+
+        currentSlots = currentSlots.filter(s => 
+            s.id !== slotToDelete.id && 
+            !(s.startHour === slotToDelete.startHour && s.endHour === slotToDelete.endHour && s.subjectId === slotToDelete.subjectId)
+        );
+
+        // Save currentSlots as override for selectedDate
+        await DB.saveDateOverride(selectedDate, currentSlots);
         await loadData();
         if (onRefreshRequest) onRefreshRequest();
     };
@@ -639,11 +657,9 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         const subColor = subject ? subject.color : colors.gold;
 
                         return (
-                            <TouchableOpacity 
+                            <View 
                                 key={slot.id} 
                                 style={[styles.classCard, { borderLeftColor: subColor }]}
-                                onPress={() => handleOpenEditDateSlot(slot)}
-                                activeOpacity={0.7}
                             >
                                 <View style={styles.classTimeBox}>
                                     <Text style={styles.classTimeText}>{formatHour(slot.startHour)}</Text>
@@ -665,8 +681,35 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                     {slot.room ? <Text style={styles.classMetaText}>📍 {slot.room}</Text> : null}
                                     {slot.notes ? <Text style={styles.classMetaText}>📝 {slot.notes}</Text> : null}
                                 </View>
-                                <Text style={{ color: colors.textMuted, fontSize: 12, marginLeft: 4 }}>✏️</Text>
-                            </TouchableOpacity>
+
+                                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 }}>
+                                    <TouchableOpacity 
+                                        style={{ padding: 6, backgroundColor: colors.bgTertiary, borderRadius: 8 }}
+                                        onPress={() => handleOpenEditDateSlot(slot)}
+                                    >
+                                        <Text style={{ fontSize: 12 }}>✏️</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={{ padding: 6, backgroundColor: 'rgba(239, 68, 68, 0.15)', borderRadius: 8 }}
+                                        onPress={() => {
+                                            Alert.alert(
+                                                'Cancel Class for Date',
+                                                `Remove "${subject ? subject.name : 'Class'}" for ${selectedDate} only?`,
+                                                [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    {
+                                                        text: 'Remove for Date',
+                                                        style: 'destructive',
+                                                        onPress: () => handleDeleteSingleSlotForDate(slot)
+                                                    }
+                                                ]
+                                            );
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 12 }}>🗑️</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         );
                     })
                 )}
