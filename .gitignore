@@ -59,3 +59,4 @@ Desktop.ini
 *.json.bak
 colasi_backup.json
 scratch/
+scripts/telegram_config.json
