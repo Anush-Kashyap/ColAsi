@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
     TIMETABLE: 'colasi_timetable_native',
     CATALOGS: 'colasi_catalogs_native',
     EVENTS: 'colasi_events_native',
-    VAULTS: 'colasi_vaults_native'
+    VAULTS: 'colasi_vaults_native',
+    DATE_OVERRIDES: 'colasi_date_overrides_native'
 };
 
 /**
@@ -159,6 +160,51 @@ export async function saveEvents(events) {
         }
     } catch (e) {
         console.error('Error saving calendar events', e);
+    }
+}
+
+/**
+ * Get all single-day timetable overrides
+ */
+export async function getDateOverrides() {
+    try {
+        const data = await AsyncStorage.getItem(STORAGE_KEYS.DATE_OVERRIDES);
+        return data ? JSON.parse(data) : {};
+    } catch (e) {
+        console.error('Error fetching date overrides', e);
+        return {};
+    }
+}
+
+/**
+ * Save single-day timetable override for a specific date (e.g. '2026-07-22')
+ */
+export async function saveDateOverride(dateStr, slots) {
+    try {
+        const allOverrides = await getDateOverrides();
+        allOverrides[dateStr] = slots;
+        await AsyncStorage.setItem(STORAGE_KEYS.DATE_OVERRIDES, JSON.stringify(allOverrides));
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
+    } catch (e) {
+        console.error('Error saving date override', e);
+    }
+}
+
+/**
+ * Delete single-day timetable override for a specific date (resets date to weekly schedule)
+ */
+export async function deleteDateOverride(dateStr) {
+    try {
+        const allOverrides = await getDateOverrides();
+        delete allOverrides[dateStr];
+        await AsyncStorage.setItem(STORAGE_KEYS.DATE_OVERRIDES, JSON.stringify(allOverrides));
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
+    } catch (e) {
+        console.error('Error deleting date override', e);
     }
 }
 

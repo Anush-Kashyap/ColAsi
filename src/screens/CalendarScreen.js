@@ -82,12 +82,22 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     const [events, setEvents] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [timetable, setTimetable] = useState([]);
+    const [dateOverrides, setDateOverrides] = useState({});
     const [sheetVisible, setSheetVisible] = useState(false);
 
-    // Form states
+    // Form states for Tasks
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
+
+    // Form states for Date Timetable Overrides
+    const [dateSlotSheetVisible, setDateSlotSheetVisible] = useState(false);
+    const [editingDateSlotId, setEditingDateSlotId] = useState(null);
+    const [slotStartHour, setSlotStartHour] = useState(8);
+    const [slotEndHour, setSlotEndHour] = useState(9);
+    const [slotSubjectId, setSlotSubjectId] = useState('');
+    const [slotRoom, setSlotRoom] = useState('');
+    const [slotNotes, setSlotNotes] = useState('');
 
     useEffect(() => {
         loadData();
@@ -138,6 +148,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         let loadedEvents = await DB.getEvents();
         const loadedSubjects = await DB.getSubjects();
         const loadedTimetable = await DB.getTimetable();
+        const loadedOverrides = await DB.getDateOverrides();
 
         // Auto-migrate Institute Foundation Day (Sept 1) to academic working day
         let needsSave = false;
@@ -167,6 +178,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         setEvents(loadedEvents);
         setSubjects(loadedSubjects);
         setTimetable(loadedTimetable);
+        setDateOverrides(loadedOverrides);
         if (loadedSubjects.length > 0 && !selectedSubjectId) {
             setSelectedSubjectId(loadedSubjects[0].id);
         }
@@ -307,6 +319,118 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
         );
     };
 
+    // --- Date Timetable Override Handlers ---
+    const isDateOverrideActive = !!(dateOverrides && dateOverrides[selectedDate] && Array.isArray(dateOverrides[selectedDate]));
+
+    const handleOpenAddDateSlot = (defaultHour = 8) => {
+        setEditingDateSlotId(null);
+        setSlotStartHour(defaultHour);
+        setSlotEndHour(defaultHour + 1);
+        if (subjects.length > 0) {
+            setSlotSubjectId(subjects[0].id);
+        } else {
+            setSlotSubjectId('');
+        }
+        setSlotRoom('');
+        setSlotNotes('');
+        setDateSlotSheetVisible(true);
+    };
+
+    const handleOpenEditDateSlot = (slot) => {
+        setEditingDateSlotId(slot.id);
+        setSlotStartHour(slot.startHour);
+        setSlotEndHour(slot.endHour);
+        setSlotSubjectId(slot.subjectId);
+        setSlotRoom(slot.room || '');
+        setSlotNotes(slot.notes || '');
+        setDateSlotSheetVisible(true);
+    };
+
+    const handleSaveDateSlot = async () => {
+        if (!slotSubjectId) {
+            Alert.alert('Selection Required', 'Please select a subject first.');
+            return;
+        }
+
+        if (slotEndHour <= slotStartHour) {
+            Alert.alert('Invalid Hours', 'End hour must be after start hour.');
+            return;
+        }
+
+        const selectedDayName = getDayName(selectedDate);
+        let currentSlots = isDateOverrideActive
+            ? [...(dateOverrides[selectedDate] || [])]
+            : [...timetable.filter(s => s.day === selectedDayName).map(s => ({ ...s, id: DB.generateUUID() }))];
+
+        const overlap = currentSlots.some(slot => {
+            if (editingDateSlotId && slot.id === editingDateSlotId) return false;
+            return slotStartHour < slot.endHour && slotEndHour > slot.startHour;
+        });
+
+        if (overlap) {
+            Alert.alert('Time Overlap', 'This slot overlaps with another class already scheduled on this date.');
+            return;
+        }
+
+        const newSlot = {
+            id: editingDateSlotId || DB.generateUUID(),
+            startHour: slotStartHour,
+            endHour: slotEndHour,
+            subjectId: slotSubjectId,
+            room: slotRoom.trim(),
+            notes: slotNotes.trim()
+        };
+
+        if (editingDateSlotId) {
+            const idx = currentSlots.findIndex(s => s.id === editingDateSlotId);
+            if (idx !== -1) currentSlots[idx] = newSlot;
+            else currentSlots.push(newSlot);
+        } else {
+            currentSlots.push(newSlot);
+        }
+
+        await DB.saveDateOverride(selectedDate, currentSlots);
+        setDateSlotSheetVisible(false);
+        await loadData();
+        if (onRefreshRequest) onRefreshRequest();
+    };
+
+    const handleDeleteDateSlot = async () => {
+        if (!editingDateSlotId) return;
+
+        let currentSlots = isDateOverrideActive ? [...(dateOverrides[selectedDate] || [])] : [];
+        currentSlots = currentSlots.filter(s => s.id !== editingDateSlotId);
+
+        if (currentSlots.length === 0) {
+            await DB.deleteDateOverride(selectedDate);
+        } else {
+            await DB.saveDateOverride(selectedDate, currentSlots);
+        }
+
+        setDateSlotSheetVisible(false);
+        await loadData();
+        if (onRefreshRequest) onRefreshRequest();
+    };
+
+    const handleResetDateSchedule = () => {
+        Alert.alert(
+            'Reset Date Timetable',
+            `Reset timetable for ${selectedDate} back to regular ${getDayName(selectedDate)} schedule?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Reset Schedule',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await DB.deleteDateOverride(selectedDate);
+                        await loadData();
+                        if (onRefreshRequest) onRefreshRequest();
+                    }
+                }
+            ]
+        );
+    };
+
     // Construct markedDates object for react-native-calendars
     const markedDates = {};
     events.forEach(ev => {
@@ -321,10 +445,23 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                 dots: [{ key: ev.id, color: dotColor }]
             };
         } else {
-            // Add dot if not duplicate
             const existingDots = markedDates[ev.date].dots || [];
             if (existingDots.length < 3) {
                 markedDates[ev.date].dots = [...existingDots, { key: ev.id, color: dotColor }];
+            }
+        }
+    });
+
+    // Highlight dates with custom timetable overrides
+    Object.keys(dateOverrides).forEach(dStr => {
+        if (dateOverrides[dStr] && dateOverrides[dStr].length > 0) {
+            if (!markedDates[dStr]) {
+                markedDates[dStr] = { dots: [{ key: `override-${dStr}`, color: colors.gold }] };
+            } else {
+                const existing = markedDates[dStr].dots || [];
+                if (existing.length < 3 && !existing.some(d => d.key && String(d.key).startsWith('override'))) {
+                    markedDates[dStr].dots = [...existing, { key: `override-${dStr}`, color: colors.gold }];
+                }
             }
         }
     });
@@ -343,11 +480,13 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     const personalTasks = selectedDayEvents.filter(ev => ev.type !== 'holiday' && ev.type !== 'exam' && ev.type !== 'academic');
     const isHoliday = academicEvents.some(ev => ev.type === 'holiday');
 
-    // Filter timetable classes for selected date's day of week
+    // Filter timetable classes (check single-day date override first!)
     const selectedDayName = getDayName(selectedDate);
-    const dayClasses = timetable
-        .filter(slot => slot.day === selectedDayName)
-        .sort((a, b) => a.startHour - b.startHour);
+    const dayClasses = isDateOverrideActive
+        ? [...dateOverrides[selectedDate]].sort((a, b) => a.startHour - b.startHour)
+        : timetable
+            .filter(slot => slot.day === selectedDayName)
+            .sort((a, b) => a.startHour - b.startHour);
 
     const formatHour = (h) => {
         const ampm = h >= 12 ? 'PM' : 'AM';
@@ -448,12 +587,40 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     </View>
                 )}
 
-                {/* 2. Day Timetable Section (Hidden if isHoliday) */}
+                {/* 2. Day Timetable Section */}
                 <View style={styles.daySectionHeader}>
-                    <Text style={styles.daySectionTitle}>
-                        📖 Classes for {selectedDate === '2026-11-05' ? 'Friday (Nov 5 Friday Schedule Override)' : (selectedDayName || 'Selected Day')}
-                    </Text>
-                    <Text style={styles.daySectionCount}>{isHoliday ? 'Holiday' : `${dayClasses.length} sessions`}</Text>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <Text style={styles.daySectionTitle}>
+                                📖 Classes for {selectedDate === '2026-11-05' ? 'Friday (Nov 5 Override)' : (selectedDayName || 'Selected Day')}
+                            </Text>
+                            {isDateOverrideActive && (
+                                <View style={{ backgroundColor: 'rgba(236, 200, 117, 0.2)', borderColor: colors.gold, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                    <Text style={{ color: colors.gold, fontFamily: fonts.headingBold, fontSize: 10 }}>⚡ Custom Date Schedule</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={styles.daySectionCount}>
+                            {selectedDate} • {isHoliday ? 'Holiday' : `${dayClasses.length} sessions`}
+                        </Text>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                        {isDateOverrideActive && (
+                            <TouchableOpacity 
+                                style={[styles.addButton, { backgroundColor: 'rgba(239, 68, 68, 0.15)', paddingHorizontal: 12, paddingVertical: 6 }]}
+                                onPress={handleResetDateSchedule}
+                            >
+                                <Text style={{ color: '#EF4444', fontFamily: fonts.headingBold, fontSize: 11 }}>🔄 Reset</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity 
+                            style={[styles.addButton, { paddingHorizontal: 12, paddingVertical: 6 }]}
+                            onPress={() => handleOpenAddDateSlot(8)}
+                        >
+                            <Text style={[styles.addButtonText, { fontSize: 11 }]}>+ Add Class</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {isHoliday ? (
@@ -463,8 +630,8 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     </View>
                 ) : dayClasses.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>No classes on {selectedDayName || 'this day'}</Text>
-                        <Text style={styles.emptyDesc}>Use the Schedule tab to add recurring timetable slots for {selectedDayName || 'this day'}.</Text>
+                        <Text style={styles.emptyTitle}>No classes on {selectedDate}</Text>
+                        <Text style={styles.emptyDesc}>Tap "+ Add Class" to set up classes specifically for this date.</Text>
                     </View>
                 ) : (
                     dayClasses.map(slot => {
@@ -472,7 +639,12 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         const subColor = subject ? subject.color : colors.gold;
 
                         return (
-                            <View key={slot.id} style={[styles.classCard, { borderLeftColor: subColor }]}>
+                            <TouchableOpacity 
+                                key={slot.id} 
+                                style={[styles.classCard, { borderLeftColor: subColor }]}
+                                onPress={() => handleOpenEditDateSlot(slot)}
+                                activeOpacity={0.7}
+                            >
                                 <View style={styles.classTimeBox}>
                                     <Text style={styles.classTimeText}>{formatHour(slot.startHour)}</Text>
                                     <Text style={styles.classTimeSub}>to</Text>
@@ -493,7 +665,8 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                     {slot.room ? <Text style={styles.classMetaText}>📍 {slot.room}</Text> : null}
                                     {slot.notes ? <Text style={styles.classMetaText}>📝 {slot.notes}</Text> : null}
                                 </View>
-                            </View>
+                                <Text style={{ color: colors.textMuted, fontSize: 12, marginLeft: 4 }}>✏️</Text>
+                            </TouchableOpacity>
                         );
                     })
                 )}
@@ -579,7 +752,7 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                 )}
             </ScrollView>
 
-            {/* Bottom Sheet Form for Adding Event */}
+            {/* Bottom Sheet Form for Adding Task */}
             <BottomSheet visible={sheetVisible} onClose={() => setSheetVisible(false)}>
                 <Text style={styles.sheetTitle}>Schedule Task / Deadline</Text>
 
@@ -649,6 +822,120 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         onPress={handleAddEvent}
                     >
                         <Text style={styles.saveBtnText}>Save Task</Text>
+                    </TouchableOpacity>
+                </View>
+            </BottomSheet>
+
+            {/* Bottom Sheet Form for Single-Day Timetable Slot */}
+            <BottomSheet visible={dateSlotSheetVisible} onClose={() => setDateSlotSheetVisible(false)}>
+                <Text style={styles.sheetTitle}>
+                    {editingDateSlotId ? 'Modify Class for Date' : 'Add Class for Date'}
+                </Text>
+                <Text style={{ color: colors.gold, fontFamily: fonts.heading, fontSize: 13, textAlign: 'center', marginBottom: 16 }}>
+                    🗓️ {selectedDate} ({selectedDayName}) • Single-Day Customization
+                </Text>
+
+                {/* Subject Selector */}
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>Choose Subject</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subjectPills}>
+                        {subjects.map(s => (
+                            <TouchableOpacity
+                                key={s.id}
+                                style={[
+                                    styles.subjectPill,
+                                    slotSubjectId === s.id && { backgroundColor: s.color }
+                                ]}
+                                onPress={() => setSlotSubjectId(s.id)}
+                            >
+                                <Text 
+                                    style={[
+                                        styles.subjectPillText,
+                                        slotSubjectId === s.id && styles.subjectPillTextActive
+                                    ]}
+                                >
+                                    {s.name} ({s.shortName})
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Hour Selectors */}
+                <View style={styles.rowForm}>
+                    <View style={[styles.formGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Starts At (Hour 8-17)</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="number-pad"
+                            value={String(slotStartHour)}
+                            onChangeText={val => {
+                                const h = parseInt(val, 10);
+                                if (!isNaN(h)) {
+                                    setSlotStartHour(h);
+                                    if (slotEndHour <= h) setSlotEndHour(h + 1);
+                                }
+                            }}
+                        />
+                    </View>
+                    <View style={[styles.formGroup, { flex: 1, marginLeft: 12 }]}>
+                        <Text style={styles.label}>Ends At (Hour 9-18)</Text>
+                        <TextInput
+                            style={styles.input}
+                            keyboardType="number-pad"
+                            value={String(slotEndHour)}
+                            onChangeText={val => {
+                                const h = parseInt(val, 10);
+                                if (!isNaN(h)) setSlotEndHour(h);
+                            }}
+                        />
+                    </View>
+                </View>
+
+                {/* Room Location */}
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>Room / Location</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. NLHC 201"
+                        placeholderTextColor={colors.textMuted}
+                        value={slotRoom}
+                        onChangeText={setSlotRoom}
+                    />
+                </View>
+
+                {/* Additional Notes */}
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>Notes (Optional)</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. Extra tutorial session"
+                        placeholderTextColor={colors.textMuted}
+                        value={slotNotes}
+                        onChangeText={setSlotNotes}
+                    />
+                </View>
+
+                <View style={styles.sheetActions}>
+                    {editingDateSlotId && (
+                        <TouchableOpacity 
+                            style={[styles.cancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', marginRight: 'auto' }]}
+                            onPress={handleDeleteDateSlot}
+                        >
+                            <Text style={{ color: '#EF4444', fontFamily: fonts.headingBold, fontSize: 13 }}>Delete</Text>
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity 
+                        style={styles.cancelBtn}
+                        onPress={() => setDateSlotSheetVisible(false)}
+                    >
+                        <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.saveBtn}
+                        onPress={handleSaveDateSlot}
+                    >
+                        <Text style={styles.saveBtnText}>Save for {selectedDate}</Text>
                     </TouchableOpacity>
                 </View>
             </BottomSheet>

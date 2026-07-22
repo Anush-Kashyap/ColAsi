@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
     SUBJECTS: 'colasi_subjects_native',
     TIMETABLE: 'colasi_timetable_native',
     EVENTS: 'colasi_events_native',
+    DATE_OVERRIDES: 'colasi_date_overrides_native',
 };
 
 const formatHour = (h) => {
@@ -64,19 +65,27 @@ export async function updateTimetableWidget() {
         const rawSubjects = await AsyncStorage.getItem(STORAGE_KEYS.SUBJECTS);
         const rawTimetable = await AsyncStorage.getItem(STORAGE_KEYS.TIMETABLE);
         const rawEvents = await AsyncStorage.getItem(STORAGE_KEYS.EVENTS);
+        const rawDateOverrides = await AsyncStorage.getItem(STORAGE_KEYS.DATE_OVERRIDES);
 
         const subjects = rawSubjects ? JSON.parse(rawSubjects) : [];
         const timetable = rawTimetable ? JSON.parse(rawTimetable) : [];
         const events = rawEvents ? JSON.parse(rawEvents) : [];
+        const dateOverrides = rawDateOverrides ? JSON.parse(rawDateOverrides) : {};
 
         // 2. Check for Holiday on today's date
         const todayEvents = events.filter(e => e.date === dateStr);
         const holidayEvent = todayEvents.find(e => e.type === 'holiday');
         const isHoliday = !!holidayEvent;
 
-        // 3. Filter today's timetable sessions
-        const dayClasses = timetable
-            .filter(slot => slot.day === dayName)
+        // 3. Filter today's timetable sessions (check for single-day date override first!)
+        let rawDaySlots = [];
+        if (dateOverrides && dateOverrides[dateStr] && Array.isArray(dateOverrides[dateStr])) {
+            rawDaySlots = dateOverrides[dateStr];
+        } else {
+            rawDaySlots = timetable.filter(slot => slot.day === dayName);
+        }
+
+        const dayClasses = rawDaySlots
             .sort((a, b) => parseInt(a.startHour, 10) - parseInt(b.startHour, 10))
             .map(slot => {
                 const sub = subjects.find(s => s.id === slot.subjectId);
