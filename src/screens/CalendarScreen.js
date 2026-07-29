@@ -88,6 +88,8 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
     // Form states for Tasks
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [taskCategory, setTaskCategory] = useState('academic'); // 'academic' | 'non-academic'
+    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
     // Form states for Date Timetable Overrides
@@ -243,16 +245,19 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
 
     const handleAddEvent = async () => {
         if (!title.trim()) {
-            Alert.alert('Incomplete Form', 'Please supply an event title (e.g. CA2 Exam).');
+            Alert.alert('Incomplete Form', 'Please supply a task title (e.g. CA2 Exam / Workout).');
             return;
         }
 
-        const subject = subjects.find(s => s.id === selectedSubjectId);
-        const notifIds = await scheduleEventNotifications(title.trim(), subject ? subject.name : '', selectedDate);
+        const isAcademic = taskCategory === 'academic';
+        const finalSubjectId = isAcademic ? selectedSubjectId : null;
+        const subject = isAcademic ? subjects.find(s => s.id === finalSubjectId) : null;
+        const notifIds = await scheduleEventNotifications(title.trim(), subject ? subject.name : (isAcademic ? 'Academic' : 'Personal Task'), selectedDate);
 
         const newEvent = {
             id: DB.generateUUID(),
-            subjectId: selectedSubjectId,
+            subjectId: finalSubjectId,
+            category: taskCategory,
             date: selectedDate,
             title: title.trim(),
             description: description.trim(),
@@ -265,6 +270,8 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
 
         setTitle('');
         setDescription('');
+        setTaskCategory('academic');
+        setSelectedSubjectId('');
         setSheetVisible(false);
         loadData();
     };
@@ -662,34 +669,40 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                         const isCompleted = isSelectedDateToday && currentHour >= slot.endHour;
                         const isLive = isSelectedDateToday && currentHour >= slot.startHour && currentHour < slot.endHour;
 
-                        const accentColor = isCompleted ? '#10B981' : subColor;
+                        const accentColor = subColor;
 
                         return (
                             <View 
                                 key={slot.id} 
-                                style={[styles.classCard, { borderLeftColor: accentColor }, isCompleted && { backgroundColor: '#141e19' }]}
+                                style={[styles.classCard, { borderLeftColor: accentColor }]}
                             >
                                 <View style={styles.classTimeBox}>
-                                    <Text style={[styles.classTimeText, isCompleted && { color: '#10B981' }]}>{formatHour(slot.startHour)}</Text>
-                                    <Text style={[styles.classTimeSub, isCompleted && { color: '#10B98190' }]}>to</Text>
-                                    <Text style={[styles.classTimeText, isCompleted && { color: '#10B981' }]}>{formatHour(slot.endHour)}</Text>
+                                    {isCompleted ? (
+                                        <Text style={[styles.classTimeText, { fontSize: 18, color: colors.gold }]}>✓</Text>
+                                    ) : (
+                                        <View style={{ alignItems: 'center' }}>
+                                            <Text style={styles.classTimeText}>{formatHour(slot.startHour)}</Text>
+                                            <Text style={styles.classTimeSub}>to</Text>
+                                            <Text style={styles.classTimeText}>{formatHour(slot.endHour)}</Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 <View style={styles.classInfo}>
                                     <View style={styles.classTitleRow}>
-                                        <Text style={[styles.classNameText, isCompleted && { color: '#10B981', textDecorationLine: 'line-through' }]}>
+                                        <Text style={styles.classNameText}>
                                             {subject ? subject.name : 'Class'}
                                         </Text>
                                         {subject && (
-                                            <View style={[styles.subjectBadge, { backgroundColor: isCompleted ? 'rgba(16, 185, 129, 0.2)' : `${subColor}20` }]}>
+                                            <View style={[styles.subjectBadge, { backgroundColor: `${subColor}20` }]}>
                                                 <Text style={[styles.subjectBadgeText, { color: accentColor }]}>
-                                                    {isCompleted ? `✓ ${subject.shortName}` : isLive ? `🔴 LIVE` : subject.shortName}
+                                                    {isLive ? `🔴 LIVE` : subject.shortName}
                                                 </Text>
                                             </View>
                                         )}
                                     </View>
-                                    {slot.room ? <Text style={[styles.classMetaText, isCompleted && { color: '#10B98190' }]}>📍 {slot.room}</Text> : null}
-                                    {slot.notes ? <Text style={[styles.classMetaText, isCompleted && { color: '#10B98180' }]}>📝 {slot.notes}</Text> : null}
+                                    {slot.room ? <Text style={styles.classMetaText}>📍 {slot.room}</Text> : null}
+                                    {slot.notes ? <Text style={styles.classMetaText}>📝 {slot.notes}</Text> : null}
                                 </View>
 
                                 <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 }}>
@@ -772,10 +785,16 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                                         >
                                             {ev.title}
                                         </Text>
-                                        {subject && (
+                                        {subject ? (
                                             <View style={[styles.subjectBadge, { backgroundColor: `${subColor}20` }]}>
                                                 <Text style={[styles.subjectBadgeText, { color: subColor }]}>
                                                     {subject.shortName}
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <View style={[styles.subjectBadge, { backgroundColor: 'rgba(236, 200, 117, 0.15)' }]}>
+                                                <Text style={[styles.subjectBadgeText, { color: colors.gold }]}>
+                                                    📌 Non-Academic
                                                 </Text>
                                             </View>
                                         )}
@@ -814,36 +833,121 @@ export default function CalendarScreen({ refreshTrigger, onRefreshRequest }) {
                     <Text style={styles.dateDisplay}>{selectedDate}</Text>
                 </View>
 
+                {/* Category Dropdown Menu */}
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Select Subject</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subjectPills}>
-                        {subjects.map(s => (
+                    <Text style={styles.label}>Category</Text>
+                    <TouchableOpacity
+                        style={[
+                            styles.dropdownHeader,
+                            categoryDropdownOpen && styles.dropdownHeaderOpen
+                        ]}
+                        onPress={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                        activeOpacity={0.8}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Text style={{ fontSize: 16 }}>
+                                {taskCategory === 'academic' ? '🎓' : '📌'}
+                            </Text>
+                            <Text style={styles.dropdownHeaderText}>
+                                {taskCategory === 'academic' ? 'Academic Task' : 'Non-Academic Task'}
+                            </Text>
+                        </View>
+                        <Text style={styles.dropdownChevron}>
+                            {categoryDropdownOpen ? '▲' : '▼'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {categoryDropdownOpen && (
+                        <View style={styles.dropdownList}>
                             <TouchableOpacity
-                                key={s.id}
                                 style={[
-                                    styles.subjectPill,
-                                    selectedSubjectId === s.id && { backgroundColor: s.color }
+                                    styles.dropdownItem,
+                                    taskCategory === 'academic' && styles.dropdownItemActive
                                 ]}
-                                onPress={() => setSelectedSubjectId(s.id)}
+                                onPress={() => {
+                                    setTaskCategory('academic');
+                                    setCategoryDropdownOpen(false);
+                                }}
+                                activeOpacity={0.7}
                             >
-                                <Text 
-                                    style={[
-                                        styles.subjectPillText,
-                                        selectedSubjectId === s.id && styles.subjectPillTextActive
-                                    ]}
-                                >
-                                    {s.name} ({s.shortName})
-                                </Text>
+                                <Text style={{ fontSize: 18 }}>🎓</Text>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.dropdownItemTitle, taskCategory === 'academic' && styles.dropdownItemTitleActive]}>
+                                        Academic Task
+                                    </Text>
+                                    <Text style={styles.dropdownItemSubtitle}>
+                                        Assignments, exams, lab reports & quizzes
+                                    </Text>
+                                </View>
+                                {taskCategory === 'academic' && (
+                                    <Text style={{ color: colors.gold, fontWeight: 'bold' }}>✓</Text>
+                                )}
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+
+                            <View style={styles.dropdownDivider} />
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.dropdownItem,
+                                    taskCategory === 'non-academic' && styles.dropdownItemActive
+                                ]}
+                                onPress={() => {
+                                    setTaskCategory('non-academic');
+                                    setSelectedSubjectId('');
+                                    setCategoryDropdownOpen(false);
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={{ fontSize: 18 }}>📌</Text>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.dropdownItemTitle, taskCategory === 'non-academic' && styles.dropdownItemTitleActive]}>
+                                        Non-Academic Task
+                                    </Text>
+                                    <Text style={styles.dropdownItemSubtitle}>
+                                        Personal goals, club events, workout & errands
+                                    </Text>
+                                </View>
+                                {taskCategory === 'non-academic' && (
+                                    <Text style={{ color: colors.gold, fontWeight: 'bold' }}>✓</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
+
+                {/* Conditional Subject Picker (Only when Academic is selected) */}
+                {taskCategory === 'academic' && (
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Select Subject</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subjectPills}>
+                            {subjects.map(s => (
+                                <TouchableOpacity
+                                    key={s.id}
+                                    style={[
+                                        styles.subjectPill,
+                                        selectedSubjectId === s.id && { backgroundColor: s.color }
+                                    ]}
+                                    onPress={() => setSelectedSubjectId(s.id)}
+                                >
+                                    <Text 
+                                        style={[
+                                            styles.subjectPillText,
+                                            selectedSubjectId === s.id && styles.subjectPillTextActive
+                                        ]}
+                                    >
+                                        {s.name} ({s.shortName})
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
 
                 <View style={styles.formGroup}>
                     <Text style={styles.label}>Task Title</Text>
                     <TextInput 
                         style={styles.input}
-                        placeholder="e.g. CA2 Mid-Term Exam / Lab Report"
+                        placeholder={taskCategory === 'academic' ? "e.g. CA2 Mid-Term Exam / Lab Report" : "e.g. Club Meeting / Gym / Laundry"}
                         placeholderTextColor={colors.textMuted}
                         value={title}
                         onChangeText={setTitle}
@@ -1250,6 +1354,77 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 12,
+    },
+    dropdownHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: colors.bgTertiary,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    dropdownHeaderOpen: {
+        borderColor: colors.gold,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
+        backgroundColor: 'rgba(236, 200, 117, 0.1)',
+    },
+    dropdownHeaderText: {
+        fontFamily: fonts.headingBold,
+        fontSize: 14,
+        color: colors.cream,
+    },
+    dropdownChevron: {
+        fontFamily: fonts.body,
+        fontSize: 12,
+        color: colors.gold,
+    },
+    dropdownList: {
+        backgroundColor: colors.bgSecondary,
+        borderWidth: 1,
+        borderTopWidth: 0,
+        borderColor: colors.gold,
+        borderBottomLeftRadius: 14,
+        borderBottomRightRadius: 14,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 8,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        backgroundColor: colors.bgSecondary,
+    },
+    dropdownItemActive: {
+        backgroundColor: 'rgba(236, 200, 117, 0.15)',
+    },
+    dropdownItemTitle: {
+        fontFamily: fonts.heading,
+        fontSize: 13,
+        color: colors.cream,
+    },
+    dropdownItemTitleActive: {
+        fontFamily: fonts.headingBold,
+        color: colors.gold,
+    },
+    dropdownItemSubtitle: {
+        fontFamily: fonts.body,
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 1,
+    },
+    dropdownDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
     subjectPills: {
         flexDirection: 'row',

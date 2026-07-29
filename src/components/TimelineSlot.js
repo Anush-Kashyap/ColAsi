@@ -20,7 +20,7 @@ export default function TimelineSlot({ slot, subject, onPress, isSelectedDayToda
     const isCompleted = isSelectedDayToday && currentHour >= endHour;
     const isLive = isSelectedDayToday && currentHour >= startHour && currentHour < endHour;
 
-    const accentColor = isCompleted ? '#10B981' : color;
+    const accentColor = color;
     
     // Time formatter helper
     const formatHour = (h) => {
@@ -39,25 +39,28 @@ export default function TimelineSlot({ slot, subject, onPress, isSelectedDayToda
 
             {/* Main Content card */}
             <View style={styles.cardWrapper}>
-                <Text style={styles.timeLabel}>
-                    {formatHour(startHour)} - {formatHour(endHour)}
-                    <Text style={styles.durationLabel}>  •  {durationLabel}</Text>
-                    {isCompleted && <Text style={{ color: '#10B981', fontFamily: fonts.headingBold, fontSize: 11 }}>  •  ✓ Finished</Text>}
-                    {isLive && <Text style={{ color: colors.gold, fontFamily: fonts.headingBold, fontSize: 11 }}>  •  🔴 Live Class</Text>}
-                </Text>
+                {isCompleted ? (
+                    <Text style={styles.timeLabel}>✓</Text>
+                ) : (
+                    <Text style={styles.timeLabel}>
+                        {formatHour(startHour)} - {formatHour(endHour)}
+                        <Text style={styles.durationLabel}>  •  {durationLabel}</Text>
+                        {isLive && <Text style={{ color: colors.gold, fontFamily: fonts.headingBold, fontSize: 11 }}>  •  🔴 Live Class</Text>}
+                    </Text>
+                )}
                 
                 <TouchableOpacity 
                     onPress={onPress}
-                    style={[styles.card, { borderLeftColor: accentColor }, isCompleted && { backgroundColor: '#141e19' }]}
+                    style={[styles.card, { borderLeftColor: accentColor }]}
                     activeOpacity={0.8}
                 >
                     <View style={styles.cardHeader}>
-                        <View style={[styles.badge, { backgroundColor: isCompleted ? 'rgba(16, 185, 129, 0.2)' : `${color}15` }]}>
-                            <Text style={[styles.badgeText, { color: accentColor }]}>{isCompleted ? `✓ ${shortName}` : isLive ? `🔴 ${shortName}` : shortName}</Text>
+                        <View style={[styles.badge, { backgroundColor: `${color}15` }]}>
+                            <Text style={[styles.badgeText, { color: accentColor }]}>{isLive ? `🔴 ${shortName}` : shortName}</Text>
                         </View>
                     </View>
                     
-                    <Text style={[styles.title, isCompleted && { color: '#10B981', textDecorationLine: 'line-through' }]}>
+                    <Text style={styles.title}>
                         {name}
                     </Text>
                     
@@ -65,12 +68,12 @@ export default function TimelineSlot({ slot, subject, onPress, isSelectedDayToda
                         <View style={styles.metaRow}>
                             {/* Location Pin Icon */}
                             <Text style={styles.metaIcon}>📍</Text>
-                            <Text style={[styles.metaText, isCompleted && { color: '#10B98190' }]}>{room}</Text>
+                            <Text style={styles.metaText}>{room}</Text>
                         </View>
                     ) : null}
 
                     {notes ? (
-                        <Text style={[styles.notesText, isCompleted && { color: '#10B98180' }]} numberOfLines={2}>
+                        <Text style={styles.notesText} numberOfLines={2}>
                             {notes}
                         </Text>
                     ) : null}

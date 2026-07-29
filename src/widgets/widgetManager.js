@@ -77,7 +77,24 @@ export async function updateTimetableWidget() {
         const holidayEvent = todayEvents.find(e => e.type === 'holiday');
         const isHoliday = !!holidayEvent;
 
-        // 3. Filter today's timetable sessions (check for single-day date override first!)
+        // 3. Today's Tasks & Deadlines (Academic & Non-Academic)
+        const todayTasks = todayEvents
+            .filter(e => e.type !== 'holiday')
+            .map(task => {
+                const sub = subjects.find(s => s.id === task.subjectId);
+                return {
+                    id: task.id,
+                    title: task.title,
+                    description: task.description || '',
+                    completed: !!task.completed,
+                    subjectName: sub ? (sub.name || sub.shortName) : '',
+                    shortName: sub ? sub.shortName : '📌 TASK',
+                    color: sub ? sub.color : '#ECC875',
+                    isAcademic: !!sub,
+                };
+            });
+
+        // 4. Filter today's timetable sessions (check for single-day date override first!)
         let rawDaySlots = [];
         if (dateOverrides && dateOverrides[dateStr] && Array.isArray(dateOverrides[dateStr])) {
             rawDaySlots = dateOverrides[dateStr];
@@ -109,7 +126,7 @@ export async function updateTimetableWidget() {
                 };
             });
 
-        // 4. Request Widget Refresh safely
+        // 5. Request Widget Refresh safely
         await requestWidgetUpdateFn({
             widgetName: 'ColAsiTimetable',
             renderWidget: () => (
@@ -117,6 +134,7 @@ export async function updateTimetableWidget() {
                     dayName={dayName}
                     dateFormatted={dateFormatted}
                     classes={dayClasses}
+                    tasks={todayTasks}
                     isHoliday={isHoliday}
                     holidayTitle={holidayEvent ? holidayEvent.title : ''}
                 />

@@ -10,6 +10,7 @@ import * as DB from '../database/storage';
 import SubjectCard from '../components/SubjectCard';
 import BottomSheet from '../components/BottomSheet';
 import SubjectDetailScreen from './SubjectDetailScreen';
+import VaultScreen from './VaultScreen';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -19,6 +20,7 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
     const [subjects, setSubjects] = useState([]);
     const [sheetVisible, setSheetVisible] = useState(false);
     const [selectedSubjectForDetail, setSelectedSubjectForDetail] = useState(null);
+    const [showVaultScreen, setShowVaultScreen] = useState(false);
     
     // Form States
     const [name, setName] = useState('');
@@ -281,13 +283,15 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
         let newBunk = subject.bunkedClasses + bunkDiff;
         if (newBunk < 0) newBunk = 0;
 
-        const maxBunks = Math.floor(newTotal * 0.2);
+        const minAttendancePct = subject.minAttendancePct ?? 80;
+        const maxBunkPct = (100 - minAttendancePct) / 100;
+        const maxBunks = Math.floor(newTotal * maxBunkPct);
 
         if (newBunk > maxBunks) {
             if (bunkDiff > 0) {
                 Alert.alert(
                     'Limit Reached', 
-                    `Bunk limit reached for ${subject.name}!\nMax allowed bunks is 20% (${maxBunks} classes).`
+                    `Bunk limit reached for ${subject.name}!\nMax allowed bunks is ${100 - minAttendancePct}% (${maxBunks} classes for ${minAttendancePct}% attendance target).`
                 );
                 return;
             } else {
@@ -302,7 +306,18 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
 
         await DB.saveSubjects(list);
         setSubjects(list);
-        onRefreshRequest(); // Keep sync across screens
+    };
+
+    const handleUpdateSubjectSettings = async (subjectId, minAttendancePct) => {
+        const idx = subjects.findIndex(s => s.id === subjectId);
+        if (idx === -1) return;
+
+        const list = [...subjects];
+        const subject = { ...list[idx], minAttendancePct };
+        list[idx] = subject;
+
+        await DB.saveSubjects(list);
+        setSubjects(list);
     };
 
     const handleDeleteSubject = (subjectId, subjectName) => {
@@ -331,6 +346,15 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
         );
     };
 
+    if (showVaultScreen) {
+        return (
+            <VaultScreen 
+                subjects={subjects} 
+                onGoBack={() => setShowVaultScreen(false)} 
+            />
+        );
+    }
+
     if (selectedSubjectForDetail) {
         return (
             <SubjectDetailScreen 
@@ -345,14 +369,22 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
             <View style={styles.header}>
                 <View>
                     <Text style={styles.title}>Subjects</Text>
-                    <Text style={styles.subtext}>bunk policy: under 20% max</Text>
+                    <Text style={styles.subtext}>per-subject target attendance</Text>
                 </View>
-                <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => setSheetVisible(true)}
-                >
-                    <Text style={styles.addButtonText}>+ Add Subject</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity 
+                        style={[styles.addButton, { backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.gold }]}
+                        onPress={() => setShowVaultScreen(true)}
+                    >
+                        <Text style={[styles.addButtonText, { color: colors.gold }]}>🏛️ Vault</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.addButton}
+                        onPress={() => setSheetVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>+ Add Subject</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <FlatList
@@ -362,6 +394,7 @@ export default function SubjectsScreen({ refreshTrigger, onRefreshRequest }) {
                     <SubjectCard
                         subject={item}
                         onUpdate={handleUpdateAttendance}
+                        onUpdateSettings={handleUpdateSubjectSettings}
                         onDelete={() => handleDeleteSubject(item.id, item.name)}
                         onOpenDetail={(sub) => setSelectedSubjectForDetail(sub)}
                     />
@@ -770,175 +803,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
 
-    // Vault Modal Styles
-    vaultCardContainer: {
-        width: '92%',
-        maxHeight: '85%',
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 24,
-        padding: 18,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 10,
-    },
-    vaultHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    vaultSubjectTitle: {
-        fontFamily: fonts.headingBold,
-        fontSize: 18,
-        color: colors.cream,
-    },
-    vaultSubjectSubtitle: {
-        fontFamily: fonts.body,
-        fontSize: 11,
-        color: colors.textSecondary,
-        marginTop: 2,
-    },
-    vaultCloseIconBtn: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: colors.bgTertiary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    vaultCloseIconText: {
-        color: colors.textMuted,
-        fontSize: 14,
-        fontFamily: fonts.headingBold,
-    },
-    vaultActionBar: {
-        flexDirection: 'row',
-        gap: 8,
-        marginVertical: 14,
-    },
-    vaultActionCapsule: {
-        flex: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 6,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    vaultActionCapsuleText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 11,
-        color: colors.cream,
-    },
-    vaultItemRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: colors.bgTertiary,
-        borderRadius: 16,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.02)',
-    },
-    vaultItemTitleText: {
-        fontFamily: fonts.heading,
-        fontSize: 13,
-        color: colors.cream,
-    },
-    vaultItemMetaText: {
-        fontFamily: fonts.body,
-        fontSize: 10,
-        color: colors.gold,
-        marginTop: 2,
-    },
-    vaultItemActionBtn: {
-        backgroundColor: colors.bgSecondary,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    vaultItemActionBtnText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 11,
-        color: colors.cream,
-    },
-    vaultEmptyState: {
-        alignItems: 'center',
-        paddingVertical: 30,
-        paddingHorizontal: 20,
-    },
-    vaultEmptyStateTitle: {
-        fontFamily: fonts.headingBold,
-        fontSize: 16,
-        color: colors.cream,
-        marginBottom: 6,
-    },
-    vaultEmptyStateDesc: {
-        fontFamily: fonts.body,
-        fontSize: 12,
-        color: colors.textSecondary,
-        textAlign: 'center',
-        lineHeight: 18,
-    },
-    vaultFooterCloseBtn: {
-        backgroundColor: colors.bgTertiary,
-        borderRadius: 16,
-        paddingVertical: 12,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    vaultFooterCloseBtnText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 13,
-        color: colors.cream,
-    },
 
-    // Resource Form Modal Styles
-    resourceFormCard: {
-        width: '88%',
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 24,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: colors.gold,
-    },
-    resourceFormTitle: {
-        fontFamily: fonts.headingBold,
-        fontSize: 18,
-        color: colors.gold,
-        marginBottom: 14,
-        textAlign: 'center',
-    },
-    resourceFormLabel: {
-        fontFamily: fonts.bodyBold,
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginBottom: 6,
-    },
-    resourceFormInput: {
-        backgroundColor: colors.bgPrimary,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        color: colors.cream,
-        fontFamily: fonts.body,
-        fontSize: 13,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    resourceModalBtn: {
-        borderRadius: 14,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    resourceModalBtnText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 13,
-        color: colors.cream,
-    }
 });

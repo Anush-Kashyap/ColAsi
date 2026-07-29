@@ -1,6 +1,6 @@
 /**
- * Subject Detail, Syllabus Catalog & Resource Vault Screen
- * Manages modules, topics, dual progress tracking, and subject resource vault.
+ * Subject Detail & Syllabus Catalog Screen
+ * Manages modules, topics, and dual progress tracking.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,20 +13,14 @@ import {
     TextInput, 
     Alert,
     KeyboardAvoidingView,
-    Platform,
-    Modal,
-    Linking
+    Platform
 } from 'react-native';
 import { colors, fonts } from '../styles/theme';
 import * as DB from '../database/storage';
 import BottomSheet from '../components/BottomSheet';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker';
 
 export default function SubjectDetailScreen({ subject, onGoBack }) {
-    // Active Tab state: 'modules' | 'vault'
-    const [activeTab, setActiveTab] = useState('modules');
+
 
     const [modules, setModules] = useState([]);
     const [moduleModalVisible, setModuleModalVisible] = useState(false);
@@ -47,17 +41,10 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
     const [editingTopicKey, setEditingTopicKey] = useState(null); // "modId_topicId"
     const [editingTopicTitle, setEditingTopicTitle] = useState('');
 
-    // Vault States
-    const [vaultItems, setVaultItems] = useState([]);
-    const [resourceModalVisible, setResourceModalVisible] = useState(false);
-    const [resourceType, setResourceType] = useState('link'); // 'link' | 'note' | 'file'
-    const [resourceTitle, setResourceTitle] = useState('');
-    const [resourceUri, setResourceUri] = useState('');
-    const [editingItem, setEditingItem] = useState(null);
+
 
     useEffect(() => {
         loadCatalogs();
-        loadVaultItems();
     }, [subject.id]);
 
     const loadCatalogs = async () => {
@@ -68,10 +55,7 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
         }
     };
 
-    const loadVaultItems = async () => {
-        const items = await DB.getVaultItems(subject.id);
-        setVaultItems(items);
-    };
+
 
     const persistModules = async (updatedList) => {
         setModules(updatedList);
@@ -295,148 +279,7 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
         setEditingTopicTitle('');
     };
 
-    // Vault Functions
-    const handlePickFileAndUpload = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*',
-                copyToCacheDirectory: true,
-            });
 
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-                const asset = result.assets[0];
-                const cleanFileName = asset.name || 'uploaded_file';
-                const destUri = `${FileSystem.documentDirectory}${Date.now()}_${cleanFileName}`;
-
-                await FileSystem.copyAsync({
-                    from: asset.uri,
-                    to: destUri,
-                });
-
-                const newItem = {
-                    id: DB.generateUUID(),
-                    subjectId: subject.id,
-                    title: cleanFileName,
-                    type: 'file',
-                    uri: destUri,
-                    mimeType: asset.mimeType || '',
-                    dateAdded: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                };
-
-                const updated = [newItem, ...vaultItems];
-                await DB.saveVaultItems(subject.id, updated);
-                setVaultItems(updated);
-                Alert.alert('File Added!', `"${cleanFileName}" is stored in ${subject.name} Vault.`);
-            }
-        } catch (e) {
-            console.error('Error picking document', e);
-            Alert.alert('Upload Failed', 'Could not pick or save the file.');
-        }
-    };
-
-    const handleOpenAddResource = (type) => {
-        setEditingItem(null);
-        setResourceType(type);
-        setResourceTitle('');
-        setResourceUri('');
-        setResourceModalVisible(true);
-    };
-
-    const handleOpenRenameModal = (item) => {
-        setEditingItem(item);
-        setResourceTitle(item.title);
-        setResourceUri(item.uri || '');
-        setResourceModalVisible(true);
-    };
-
-    const handleSaveResource = async () => {
-        if (!resourceTitle.trim()) {
-            Alert.alert('Title Required', 'Please enter a title for this resource.');
-            return;
-        }
-
-        if (editingItem) {
-            const updated = vaultItems.map(item => {
-                if (item.id === editingItem.id) {
-                    return {
-                        ...item,
-                        title: resourceTitle.trim(),
-                        uri: resourceType === 'link' || resourceType === 'note' ? resourceUri.trim() : item.uri,
-                    };
-                }
-                return item;
-            });
-            await DB.saveVaultItems(subject.id, updated);
-            setVaultItems(updated);
-            setResourceModalVisible(false);
-            Alert.alert('Updated', 'Resource display name updated successfully.');
-            return;
-        }
-
-        const newItem = {
-            id: DB.generateUUID(),
-            subjectId: subject.id,
-            title: resourceTitle.trim(),
-            type: resourceType,
-            uri: resourceUri.trim(),
-            dateAdded: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        };
-
-        const updated = [newItem, ...vaultItems];
-        await DB.saveVaultItems(subject.id, updated);
-        setVaultItems(updated);
-        setResourceModalVisible(false);
-    };
-
-    const handleOpenResource = async (item) => {
-        try {
-            if (item.type === 'file') {
-                const canShare = await Sharing.isAvailableAsync();
-                if (canShare) {
-                    await Sharing.shareAsync(item.uri);
-                } else {
-                    Alert.alert('File Path', item.uri);
-                }
-            } else if (item.type === 'link') {
-                if (item.uri) {
-                    let formattedUrl = item.uri.trim();
-                    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-                        formattedUrl = 'https://' + formattedUrl;
-                    }
-                    const supported = await Linking.canOpenURL(formattedUrl);
-                    if (supported) {
-                        await Linking.openURL(formattedUrl);
-                    } else {
-                        Alert.alert('Invalid Link', formattedUrl);
-                    }
-                }
-            } else if (item.type === 'note') {
-                Alert.alert(`📝 ${item.title}`, item.uri || 'No text content.');
-            }
-        } catch (e) {
-            console.error('Error opening resource', e);
-            Alert.alert('Unable to Open', 'Could not open resource.');
-        }
-    };
-
-    const handleDeleteResource = (itemId) => {
-        Alert.alert(
-            'Delete Resource',
-            'Remove this resource from the vault?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        const updated = vaultItems.filter(item => item.id !== itemId);
-                        await DB.saveVaultItems(subject.id, updated);
-                        setVaultItems(updated);
-                    }
-                }
-            ]
-        );
-    };
 
     // Calculate Overall Syllabus Stats
     let totalTopics = 0;
@@ -464,37 +307,17 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
 
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity 
-                        style={[styles.addModHeaderBtn, { backgroundColor: activeTab === 'vault' ? colors.gold : colors.bgTertiary }]}
-                        onPress={() => setActiveTab(activeTab === 'vault' ? 'modules' : 'vault')}
+                        style={[styles.addModHeaderBtn, { backgroundColor: colors.accent }]}
+                        onPress={() => setBulkModalVisible(true)}
                     >
-                        <Text style={[styles.addModHeaderBtnText, { color: colors.cream }]}>
-                            {activeTab === 'vault' ? '📚 Syllabus' : '🏛️ Vault'}
-                        </Text>
+                        <Text style={styles.addModHeaderBtnText}>+ Smart Paste</Text>
                     </TouchableOpacity>
-
-                    {activeTab === 'modules' ? (
-                        <>
-                            <TouchableOpacity 
-                                style={[styles.addModHeaderBtn, { backgroundColor: colors.accent }]}
-                                onPress={() => setBulkModalVisible(true)}
-                            >
-                                <Text style={styles.addModHeaderBtnText}>+ Smart Paste</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={styles.addModHeaderBtn}
-                                onPress={() => setModuleModalVisible(true)}
-                            >
-                                <Text style={styles.addModHeaderBtnText}>+ Module</Text>
-                            </TouchableOpacity>
-                        </>
-                    ) : (
-                        <TouchableOpacity 
-                            style={[styles.addModHeaderBtn, { backgroundColor: colors.gold }]}
-                            onPress={handlePickFileAndUpload}
-                        >
-                            <Text style={[styles.addModHeaderBtnText, { color: colors.cream }]}>📄 Upload File</Text>
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity 
+                        style={styles.addModHeaderBtn}
+                        onPress={() => setModuleModalVisible(true)}
+                    >
+                        <Text style={styles.addModHeaderBtnText}>+ Module</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -538,110 +361,8 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
                         </View>
                     </View>
 
-                    {/* Mode Switcher Tabs */}
-                    <View style={styles.tabBarRow}>
-                        <TouchableOpacity 
-                            style={[styles.tabCapsule, activeTab === 'modules' && styles.tabCapsuleActive]}
-                            onPress={() => setActiveTab('modules')}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.tabCapsuleText, activeTab === 'modules' && styles.tabCapsuleTextActive]}>
-                                📚 Syllabus ({modules.length} Modules)
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                            style={[styles.tabCapsule, activeTab === 'vault' && styles.tabCapsuleActive]}
-                            onPress={() => setActiveTab('vault')}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.tabCapsuleText, activeTab === 'vault' && styles.tabCapsuleTextActive]}>
-                                🏛️ Vault ({vaultItems.length} Items)
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Active Tab View */}
-                    {activeTab === 'vault' ? (
-                        <View style={styles.vaultWindowContainer}>
-                            {/* Vault Quick Action Bar */}
-                            <View style={styles.vaultActionBar}>
-                                <TouchableOpacity 
-                                    style={[styles.vaultActionCapsule, { backgroundColor: colors.gold }]}
-                                    onPress={handlePickFileAndUpload}
-                                >
-                                    <Text style={[styles.vaultActionCapsuleText, { color: colors.cream }]}>📄 Upload File</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity 
-                                    style={[styles.vaultActionCapsule, { backgroundColor: colors.bgSecondary, borderWidth: 1, borderColor: colors.gold }]}
-                                    onPress={() => handleOpenAddResource('link')}
-                                >
-                                    <Text style={[styles.vaultActionCapsuleText, { color: colors.gold }]}>🔗 Add Link</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity 
-                                    style={[styles.vaultActionCapsule, { backgroundColor: colors.bgSecondary }]}
-                                    onPress={() => handleOpenAddResource('note')}
-                                >
-                                    <Text style={styles.vaultActionCapsuleText}>📝 Add Note</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Resources List */}
-                            {vaultItems.length === 0 ? (
-                                <View style={styles.vaultEmptyState}>
-                                    <Text style={{ fontSize: 36, marginBottom: 8 }}>🏛️</Text>
-                                    <Text style={styles.vaultEmptyStateTitle}>Vault is Empty</Text>
-                                    <Text style={styles.vaultEmptyStateDesc}>
-                                        Upload textbooks, PDF notes, drive links, or exam reminders for {subject.name}.
-                                    </Text>
-                                </View>
-                            ) : (
-                                vaultItems.map(item => (
-                                    <View key={item.id} style={styles.vaultItemRow}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                                            <Text style={{ fontSize: 24 }}>
-                                                {item.type === 'file' ? '📄' : item.type === 'link' ? '🔗' : '📝'}
-                                            </Text>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.vaultItemTitleText} numberOfLines={2}>
-                                                    {item.title}
-                                                </Text>
-                                                <Text style={styles.vaultItemMetaText}>
-                                                    {item.type.toUpperCase()} • Added {item.dateAdded}
-                                                </Text>
-                                            </View>
-                                        </View>
-
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                            <TouchableOpacity 
-                                                style={styles.vaultItemActionBtn}
-                                                onPress={() => handleOpenResource(item)}
-                                            >
-                                                <Text style={styles.vaultItemActionBtnText}>📖 Open</Text>
-                                            </TouchableOpacity>
-
-                                            <TouchableOpacity 
-                                                style={styles.vaultItemActionBtn}
-                                                onPress={() => handleOpenRenameModal(item)}
-                                            >
-                                                <Text style={styles.vaultItemActionBtnText}>✏️</Text>
-                                            </TouchableOpacity>
-
-                                            <TouchableOpacity 
-                                                style={[styles.vaultItemActionBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}
-                                                onPress={() => handleDeleteResource(item.id)}
-                                            >
-                                                <Text style={{ color: '#EF4444', fontFamily: fonts.headingBold, fontSize: 11 }}>🗑️</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                ))
-                            )}
-                        </View>
-                    ) : (
-                        <View>
+                    {/* Syllabus Content */}
+                    <View>
                             {/* Section Header */}
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>Syllabus Catalog ({modules.length} Modules)</Text>
@@ -911,70 +632,7 @@ export default function SubjectDetailScreen({ subject, onGoBack }) {
                 </View>
             </BottomSheet>
 
-            {/* Add / Rename Resource Modal */}
-            <Modal visible={resourceModalVisible} transparent animationType="fade">
-                <View style={styles.modalBackdrop}>
-                    <View style={styles.resourceFormCard}>
-                        <Text style={styles.resourceFormTitle}>
-                            {editingItem ? '✏️ Rename Resource' : resourceType === 'link' ? '🔗 Add Web Link' : '📝 Add Quick Note'}
-                        </Text>
 
-                        <Text style={styles.resourceFormLabel}>Display Name / Title</Text>
-                        <TextInput
-                            style={styles.resourceFormInput}
-                            value={resourceTitle}
-                            onChangeText={setResourceTitle}
-                            placeholder="e.g. AI Textbook - Russell & Norvig 4th Ed"
-                            placeholderTextColor={colors.textMuted}
-                        />
-
-                        {!editingItem && resourceType === 'link' && (
-                            <>
-                                <Text style={[styles.resourceFormLabel, { marginTop: 12 }]}>URL / Drive Link</Text>
-                                <TextInput
-                                    style={styles.resourceFormInput}
-                                    value={resourceUri}
-                                    onChangeText={setResourceUri}
-                                    placeholder="https://drive.google.com/..."
-                                    placeholderTextColor={colors.textMuted}
-                                    autoCapitalize="none"
-                                    keyboardType="url"
-                                />
-                            </>
-                        )}
-
-                        {!editingItem && resourceType === 'note' && (
-                            <>
-                                <Text style={[styles.resourceFormLabel, { marginTop: 12 }]}>Note Content</Text>
-                                <TextInput
-                                    style={[styles.resourceFormInput, { height: 80, textAlignVertical: 'top' }]}
-                                    value={resourceUri}
-                                    onChangeText={setResourceUri}
-                                    placeholder="Type quick notes, syllabus topics, or exam reminders..."
-                                    placeholderTextColor={colors.textMuted}
-                                    multiline
-                                />
-                            </>
-                        )}
-
-                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
-                            <TouchableOpacity 
-                                style={[styles.resourceModalBtn, { flex: 1, backgroundColor: colors.bgTertiary }]}
-                                onPress={() => setResourceModalVisible(false)}
-                            >
-                                <Text style={styles.resourceModalBtnText}>Cancel</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={[styles.resourceModalBtn, { flex: 1, backgroundColor: colors.gold }]}
-                                onPress={handleSaveResource}
-                            >
-                                <Text style={[styles.resourceModalBtnText, { color: colors.cream }]}>Save</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -1102,165 +760,9 @@ const styles = StyleSheet.create({
         borderRadius: 2,
     },
 
-    // Mode Switcher Capsule Tabs
-    tabBarRow: {
-        flexDirection: 'row',
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 18,
-        padding: 4,
-        marginBottom: 18,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.03)',
-    },
-    tabCapsule: {
-        flex: 1,
-        paddingVertical: 10,
-        borderRadius: 14,
-        alignItems: 'center',
-    },
-    tabCapsuleActive: {
-        backgroundColor: colors.bgTertiary,
-        borderWidth: 1,
-        borderColor: colors.gold,
-    },
-    tabCapsuleText: {
-        fontFamily: fonts.heading,
-        fontSize: 12,
-        color: colors.textSecondary,
-    },
-    tabCapsuleTextActive: {
-        fontFamily: fonts.headingBold,
-        color: colors.gold,
-    },
 
-    // Vault Window Styles
-    vaultWindowContainer: {
-        gap: 12,
-    },
-    vaultActionBar: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 8,
-    },
-    vaultActionCapsule: {
-        flex: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 6,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    vaultActionCapsuleText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 11,
-        color: colors.cream,
-    },
-    vaultItemRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.02)',
-        marginBottom: 8,
-    },
-    vaultItemTitleText: {
-        fontFamily: fonts.heading,
-        fontSize: 13,
-        color: colors.cream,
-    },
-    vaultItemMetaText: {
-        fontFamily: fonts.body,
-        fontSize: 10,
-        color: colors.gold,
-        marginTop: 2,
-    },
-    vaultItemActionBtn: {
-        backgroundColor: colors.bgTertiary,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        borderRadius: 10,
-    },
-    vaultItemActionBtnText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 11,
-        color: colors.cream,
-    },
-    vaultEmptyState: {
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 24,
-        alignItems: 'center',
-        paddingVertical: 40,
-        paddingHorizontal: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.03)',
-        borderStyle: 'dashed',
-    },
-    vaultEmptyStateTitle: {
-        fontFamily: fonts.headingBold,
-        fontSize: 16,
-        color: colors.cream,
-        marginBottom: 6,
-    },
-    vaultEmptyStateDesc: {
-        fontFamily: fonts.body,
-        fontSize: 12,
-        color: colors.textSecondary,
-        textAlign: 'center',
-        lineHeight: 18,
-    },
 
-    // Resource Form Modal
-    modalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    resourceFormCard: {
-        width: '88%',
-        backgroundColor: colors.bgSecondary,
-        borderRadius: 24,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: colors.gold,
-    },
-    resourceFormTitle: {
-        fontFamily: fonts.headingBold,
-        fontSize: 18,
-        color: colors.gold,
-        marginBottom: 14,
-        textAlign: 'center',
-    },
-    resourceFormLabel: {
-        fontFamily: fonts.bodyBold,
-        fontSize: 12,
-        color: colors.textSecondary,
-        marginBottom: 6,
-    },
-    resourceFormInput: {
-        backgroundColor: colors.bgPrimary,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        color: colors.cream,
-        fontFamily: fonts.body,
-        fontSize: 13,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    resourceModalBtn: {
-        borderRadius: 14,
-        paddingVertical: 12,
-        alignItems: 'center',
-    },
-    resourceModalBtnText: {
-        fontFamily: fonts.headingBold,
-        fontSize: 13,
-        color: colors.cream,
-    },
+
 
     sectionHeader: {
         marginBottom: 14,

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import { colors, fonts } from '../styles/theme';
 
-export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail }) {
+export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail, onUpdateSettings }) {
     const { name, shortName, color, totalClasses, bunkedClasses } = subject;
+    const minAttendancePct = subject.minAttendancePct ?? 80;
     
     // Inline editing states for counters
     const [editingTotal, setEditingTotal] = useState(false);
@@ -11,6 +12,10 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
 
     const [editingBunk, setEditingBunk] = useState(false);
     const [bunkInput, setBunkInput] = useState(String(bunkedClasses));
+
+    // Subject Settings Modal State
+    const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+    const [targetPctInput, setTargetPctInput] = useState(String(minAttendancePct));
 
     useEffect(() => {
         setTotalInput(String(totalClasses));
@@ -20,7 +25,12 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
         setBunkInput(String(bunkedClasses));
     }, [bunkedClasses]);
 
-    const maxBunks = Math.floor(totalClasses * 0.2);
+    useEffect(() => {
+        setTargetPctInput(String(minAttendancePct));
+    }, [minAttendancePct]);
+
+    const maxBunkPct = (100 - minAttendancePct) / 100;
+    const maxBunks = Math.floor(totalClasses * maxBunkPct);
     const attended = totalClasses - bunkedClasses;
     
     let pct = 100;
@@ -28,8 +38,8 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
         pct = Math.round((attended / totalClasses) * 100);
     }
     
-    const isCritical = pct < 80;
-    const statusText = isCritical ? 'Critically low attendance' : 'Safe attendance level';
+    const isCritical = pct < minAttendancePct;
+    const statusText = isCritical ? `Critically low (<${minAttendancePct}%)` : `Safe level (≥${minAttendancePct}%)`;
     const statusColor = isCritical ? colors.critical : colors.optimal;
 
     const handleTotalSubmit = () => {
@@ -58,25 +68,52 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
         }
     };
 
+    const handleSaveSettings = () => {
+        const val = parseInt(targetPctInput, 10);
+        if (isNaN(val) || val < 1 || val > 100) {
+            Alert.alert('Invalid Percentage', 'Please enter a target percentage between 1 and 100.');
+            return;
+        }
+        if (onUpdateSettings) {
+            onUpdateSettings(subject.id, val);
+        }
+        setSettingsModalVisible(false);
+    };
+
     return (
         <View style={[styles.card, { borderTopColor: color }]}>
             {/* Tappable Card Header */}
-            <TouchableOpacity 
-                style={styles.header} 
-                onPress={() => onOpenDetail && onOpenDetail(subject)}
-                activeOpacity={0.7}
-            >
-                <View style={styles.titleGroup}>
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.titleGroup} 
+                    onPress={() => onOpenDetail && onOpenDetail(subject)}
+                    activeOpacity={0.7}
+                >
                     <View style={[styles.colorDot, { backgroundColor: color }]} />
                     <Text style={styles.name} numberOfLines={1}>{name}</Text>
                     <View style={[styles.badge, { backgroundColor: `${color}20` }]}>
                         <Text style={[styles.badgeText, { color: color }]}>{shortName}</Text>
                     </View>
-                </View>
-                <TouchableOpacity onPress={onDelete} style={styles.deleteButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Text style={styles.deleteText}>×</Text>
                 </TouchableOpacity>
-            </TouchableOpacity>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TouchableOpacity 
+                        onPress={() => setSettingsModalVisible(true)} 
+                        style={styles.settingsButton} 
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={styles.settingsText}>⚙️</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        onPress={onDelete} 
+                        style={styles.deleteButton} 
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Text style={styles.deleteText}>×</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
 
             <View style={styles.body}>
                 <View style={styles.statsContainer}>
@@ -170,7 +207,7 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
                     
                     <View style={styles.limitRow}>
                         <Text style={styles.hintText}>💡 Tap number to type value directly</Text>
-                        <Text style={styles.limitText}>Max allowable bunks (20%): {maxBunks}</Text>
+                        <Text style={styles.limitText}>Max bunks ({100 - minAttendancePct}% max): {maxBunks}</Text>
                     </View>
                 </View>
 
@@ -195,6 +232,69 @@ export default function SubjectCard({ subject, onUpdate, onDelete, onOpenDetail 
                     <Text style={styles.catalogButtonArrow}>→</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Subject Settings Modal */}
+            <Modal visible={settingsModalVisible} transparent animationType="fade">
+                <View style={styles.modalBackdrop}>
+                    <View style={styles.settingsFormCard}>
+                        <Text style={styles.settingsFormTitle}>⚙️ {name} Settings</Text>
+                        <Text style={styles.settingsFormSub}>Set minimum attendance policy for this subject</Text>
+
+                        <Text style={styles.settingsFormLabel}>Required Attendance Target (%)</Text>
+
+                        {/* Quick preset capsules */}
+                        <View style={styles.presetRow}>
+                            {[75, 80, 85, 90].map((presetVal) => (
+                                <TouchableOpacity 
+                                    key={presetVal}
+                                    style={[
+                                        styles.presetCapsule, 
+                                        targetPctInput === String(presetVal) && styles.presetCapsuleActive
+                                    ]}
+                                    onPress={() => setTargetPctInput(String(presetVal))}
+                                >
+                                    <Text style={[
+                                        styles.presetCapsuleText,
+                                        targetPctInput === String(presetVal) && styles.presetCapsuleTextActive
+                                    ]}>
+                                        {presetVal}%
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <TextInput
+                            style={styles.settingsFormInput}
+                            value={targetPctInput}
+                            onChangeText={setTargetPctInput}
+                            keyboardType="number-pad"
+                            placeholder="e.g. 75 or 80"
+                            placeholderTextColor={colors.textMuted}
+                            selectTextOnFocus
+                        />
+
+                        <Text style={styles.settingsHint}>
+                            Allowable bunks will be calculated as {100 - (parseInt(targetPctInput, 10) || 0)}% of conducted classes.
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
+                            <TouchableOpacity 
+                                style={[styles.settingsModalBtn, { flex: 1, backgroundColor: colors.bgTertiary }]}
+                                onPress={() => { setTargetPctInput(String(minAttendancePct)); setSettingsModalVisible(false); }}
+                            >
+                                <Text style={styles.settingsModalBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={[styles.settingsModalBtn, { flex: 1, backgroundColor: colors.gold }]}
+                                onPress={handleSaveSettings}
+                            >
+                                <Text style={[styles.settingsModalBtnText, { color: colors.bgPrimary }]}>Save Settings</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -247,6 +347,17 @@ const styles = StyleSheet.create({
     badgeText: {
         fontFamily: fonts.headingBold,
         fontSize: 10,
+    },
+    settingsButton: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    settingsText: {
+        fontSize: 13,
     },
     deleteButton: {
         width: 28,
@@ -400,5 +511,96 @@ const styles = StyleSheet.create({
         fontFamily: fonts.headingBold,
         fontSize: 14,
         color: colors.gold,
+    },
+
+    // Modal Styles
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    settingsFormCard: {
+        width: '88%',
+        backgroundColor: colors.bgSecondary,
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: colors.gold,
+    },
+    settingsFormTitle: {
+        fontFamily: fonts.headingBold,
+        fontSize: 18,
+        color: colors.gold,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    settingsFormSub: {
+        fontFamily: fonts.body,
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    settingsFormLabel: {
+        fontFamily: fonts.bodyBold,
+        fontSize: 12,
+        color: colors.cream,
+        marginBottom: 8,
+    },
+    presetRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 12,
+    },
+    presetCapsule: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: colors.bgTertiary,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    presetCapsuleActive: {
+        backgroundColor: colors.gold,
+        borderColor: colors.gold,
+    },
+    presetCapsuleText: {
+        fontFamily: fonts.headingBold,
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    presetCapsuleTextActive: {
+        color: colors.bgPrimary,
+    },
+    settingsFormInput: {
+        backgroundColor: colors.bgPrimary,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        color: colors.gold,
+        fontFamily: fonts.bodyBold,
+        fontSize: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        textAlign: 'center',
+    },
+    settingsHint: {
+        fontFamily: fonts.body,
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    settingsModalBtn: {
+        borderRadius: 14,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    settingsModalBtnText: {
+        fontFamily: fonts.headingBold,
+        fontSize: 13,
+        color: colors.cream,
     }
 });

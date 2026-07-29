@@ -138,6 +138,9 @@ export default function App() {
 
     const triggerRefresh = () => {
         setRefreshTrigger(prev => prev + 1);
+        if (WidgetManager && typeof WidgetManager.updateTimetableWidget === 'function') {
+            WidgetManager.updateTimetableWidget().catch(() => {});
+        }
     };
 
     return (
@@ -156,6 +159,13 @@ export default function App() {
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
                             <Text style={styles.infoBadgeText}>i</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={() => checkForUpdates(true)} 
+                            style={{ backgroundColor: 'rgba(236, 200, 117, 0.15)', borderWidth: 1, borderColor: colors.gold, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Text style={{ fontFamily: 'Outfit-Bold', color: colors.gold, fontSize: 11 }}>🔄 Update</Text>
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.logoSubtitle}>your cozy space</Text>
